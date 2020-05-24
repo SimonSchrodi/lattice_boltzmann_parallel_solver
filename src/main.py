@@ -8,6 +8,4 @@ if __name__ == "__main__":
         prob_density_func[..., 5] = np.ones((10, 10))
         density = compute_density(prob_density_func)
         velocity = compute_velocity_field(density, prob_density_func)
-        visualize_velocity_field(velocity, (10,10))
-
-
+        visualize_velocity_field(velocity, (10, 10))
