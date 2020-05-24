@@ -1,3 +1,4 @@
+pycodestyle
 numpy
 scipy
 matplotlib
