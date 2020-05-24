@@ -1,1 +1,1 @@
-# lattice_boltzman_parallel_solver
+# Lattice Boltzman Parallel Solver
