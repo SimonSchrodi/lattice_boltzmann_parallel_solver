@@ -2,4 +2,3 @@ pycodestyle
 numpy
 scipy
 matplotlib
-numba
