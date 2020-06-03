@@ -107,7 +107,7 @@ def equilibrium_distr_func(density_func: np.ndarray, velocity_field: np.ndarray,
 
     ci_u = velocity_field @ c_i.T
 
-    f_eq = np.expand_dims(w_i, axis=(0, 1)) * np.expand_dims(density_func, axis=-1) * (
+    f_eq = w_i[np.newaxis, np.newaxis, ...] * np.expand_dims(density_func, axis=-1) * (
             1 +
             3 * ci_u +
             (9 / 2) * np.power(ci_u, 2) -
