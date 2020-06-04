@@ -115,3 +115,17 @@ def equilibrium_distr_func(density_func: np.ndarray, velocity_field: np.ndarray,
     )
 
     return f_eq
+
+
+def lattice_boltzman_step(f, density, velocity, omega, boundary=False):
+    f_eq = equilibrium_distr_func(density, velocity, 9)
+
+    f = f + (f_eq - f) * omega
+
+    f = streaming(f)
+
+    density = compute_density(f)
+
+    velocity = compute_velocity_field(density, f)
+
+    return f, density, velocity
