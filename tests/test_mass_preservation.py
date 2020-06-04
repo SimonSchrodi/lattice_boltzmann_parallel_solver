@@ -26,7 +26,7 @@ class TestDensityComputation(unittest.TestCase):
         density = np.ones((50, 50)) * 0.5
         density[24, 24] = 0.6
         velocity = np.ones((50, 50, 2)) * 0.0
-        f = equilibrium_distr_func(density, velocity, 9)
+        f = equilibrium_distr_func(density, velocity)
         omega = 0.5
         for _ in range(10000):
             f_new, density_new, velocity_new = lattice_boltzman_step(f, density, velocity, omega)

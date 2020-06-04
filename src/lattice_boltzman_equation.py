@@ -1,8 +1,8 @@
 import numpy as np
-import typing
+from typing import Tuple
 
 
-def get_velocity_sets():
+def get_velocity_sets() -> np.ndarray:
     """
     Get velocity set. Note that the length of the discrete velocities can be different.
     Returns:
@@ -25,7 +25,13 @@ def get_velocity_sets():
     )
 
 
-def get_w_i():
+def vel_to_opp_vel_mapping() -> np.ndarray:
+    return np.array(
+        [0, 3, 4, 1, 2, 7, 8, 5, 6]
+    )
+
+
+def get_w_i() -> np.ndarray:
     """
     Return weights defined for a D2Q9 lattice. The weighting takes the different lengths of
     the discrete velocities of the velocity set into account.
@@ -37,7 +43,7 @@ def get_w_i():
     )
 
 
-def compute_density(prob_densitiy_func: np.ndarray):
+def compute_density(prob_densitiy_func: np.ndarray) -> np.ndarray:
     """
     Compute local density
     Args:
@@ -51,7 +57,7 @@ def compute_density(prob_densitiy_func: np.ndarray):
     return np.sum(prob_densitiy_func, axis=-1)
 
 
-def compute_velocity_field(density_func: np.ndarray, prob_density_func: np.ndarray):
+def compute_velocity_field(density_func: np.ndarray, prob_density_func: np.ndarray) -> np.ndarray:
     """
     Computes the velocity field
     Args:
@@ -78,7 +84,7 @@ def compute_velocity_field(density_func: np.ndarray, prob_density_func: np.ndarr
     return u
 
 
-def streaming(prob_density_func: np.ndarray):
+def streaming(prob_density_func: np.ndarray) -> np.ndarray:
     """
     Implements the streaming operator
     Args:
@@ -99,7 +105,7 @@ def streaming(prob_density_func: np.ndarray):
     return new_prob_density_func
 
 
-def equilibrium_distr_func(density_func: np.ndarray, velocity_field: np.ndarray, discretized_directions: int):
+def equilibrium_distr_func(density_func: np.ndarray, velocity_field: np.ndarray) -> np.ndarray:
     assert density_func.shape == velocity_field.shape[:-1]
 
     w_i = get_w_i()
@@ -117,15 +123,35 @@ def equilibrium_distr_func(density_func: np.ndarray, velocity_field: np.ndarray,
     return f_eq
 
 
-def lattice_boltzman_step(f, density, velocity, omega, boundary=False):
-    f_eq = equilibrium_distr_func(density, velocity, 9)
+def lattice_boltzman_step(f, density, velocity, omega, boundary=None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    f_eq = equilibrium_distr_func(density, velocity)
 
-    f = f + (f_eq - f) * omega
+    f_pre = f + (f_eq - f) * omega
 
-    f = streaming(f)
+    f_post = streaming(f_pre)
 
-    density = compute_density(f)
+    if boundary is not None:
+        f_post = boundary(f_pre, f_post, density)
 
-    velocity = compute_velocity_field(density, f)
+    density = compute_density(f_post)
+    velocity = compute_velocity_field(density, f_post)
 
-    return f, density, velocity
+    return f_post, density, velocity
+
+
+def lattice_boltzman_solver(density: np.ndarray, velocity: np.ndarray, omega: float = 0.5, boundary=None,
+                            time_steps: int = 1000) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    assert 0 < omega < 2
+
+    f = equilibrium_distr_func(density, velocity)
+
+    densities = [density]
+    velocities = [velocity]
+    fs = [f]
+    for i in range(time_steps):
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
+        densities.append(density)
+        velocities.append(velocity)
+        fs.append(fs)
+
+    return np.array(densities), np.array(velocities), np.array(fs)

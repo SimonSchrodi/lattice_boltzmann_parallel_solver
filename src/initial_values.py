@@ -4,7 +4,7 @@ from typing import Tuple
 
 def milestone_2_test_1_initial_val(lattice_grid_shape: Tuple[int, int]):
     density = np.ones(lattice_grid_shape) * 0.5
-    density[lattice_grid_shape[0]/2, lattice_grid_shape[1]/2] = 0.6
+    density[lattice_grid_shape[0] / 2, lattice_grid_shape[1] / 2] = 0.6
     velocity = np.ones(lattice_grid_shape) * 0.0
     return density, velocity
 
@@ -15,7 +15,7 @@ def milestone_2_test_2_initial_val(lattice_grid_shape: Tuple[int, int]):
     return density, velocity
 
 
-def shear_wave_decay_1(lattice_grid_shape: Tuple[int, int], initial_p0: float, epsilon: float):
+def sinusoidal_density_x(lattice_grid_shape: Tuple[int, int], initial_p0: float, epsilon: float):
     """
     Return initial values according to p(r,0)=p_0+eps*sin(2*PI*x/lx) and u(r,0) = 0
 
@@ -46,7 +46,7 @@ def shear_wave_decay_1(lattice_grid_shape: Tuple[int, int], initial_p0: float, e
     return rho, u
 
 
-def shear_wave_decay_2(lattice_grid_shape: Tuple[int, int], epsilon: float):
+def sinusoidal_velocity_x(lattice_grid_shape: Tuple[int, int], epsilon: float):
     """
     Return initial values according to p(r,0)=1 and u(r,0) = eps*sin(2*PI*y/ly)
 
@@ -74,3 +74,7 @@ def shear_wave_decay_2(lattice_grid_shape: Tuple[int, int], epsilon: float):
     )
     u = np.dstack([ux, np.zeros(lattice_grid_shape)])
     return rho, u
+
+
+def density_1_velocity_0_initial(lattice_grid_shape: Tuple[int, int]):
+    return np.ones(lattice_grid_shape), np.zeros(lattice_grid_shape + (2,))

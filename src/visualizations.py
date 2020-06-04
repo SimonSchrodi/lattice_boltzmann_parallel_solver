@@ -9,10 +9,27 @@ import numpy as np
 import matplotlib.cm as cm
 
 
-def visualize_velocity_field(velocity_field: np.ndarray, lattice_grid_shape: Tuple[int, int]):
+def visualize_velocity_streamplot(velocity_field: np.ndarray, lattice_grid_shape: Tuple[int, int]):
     assert velocity_field.shape[-1] == 2
     y, x = np.mgrid[0:lattice_grid_shape[0], 0:lattice_grid_shape[1]]
     streamplot(
+        x,
+        y,
+        velocity_field[..., 0],
+        velocity_field[..., 1],
+        color=velocity_field[..., 1],
+        cmap='autumn'
+    )
+    plt.xlim(0, lattice_grid_shape[0] - 1)
+    plt.ylim(0, lattice_grid_shape[1] - 1)
+    plt.colorbar()
+    plt.show()
+
+
+def visualize_velocity_quiver(velocity_field: np.ndarray, lattice_grid_shape: Tuple[int, int]):
+    assert velocity_field.shape[-1] == 2
+    y, x = np.mgrid[0:lattice_grid_shape[0], 0:lattice_grid_shape[1]]
+    plt.quiver(
         x,
         y,
         velocity_field[..., 0],

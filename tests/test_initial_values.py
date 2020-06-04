@@ -2,7 +2,7 @@ import unittest
 import logging
 import numpy as np
 
-from src.initial_values import shear_wave_decay_1, shear_wave_decay_2
+from src.initial_values import sinusoidal_density_x, sinusoidal_velocity_x
 
 
 class TestDensityComputation(unittest.TestCase):
@@ -24,7 +24,7 @@ class TestDensityComputation(unittest.TestCase):
         )
         u_true = 0
 
-        rho, u = shear_wave_decay_1(lattice_grid_shape=lattice_grid_shape, initial_p0=initial_p0, epsilon=epsilon)
+        rho, u = sinusoidal_density_x(lattice_grid_shape=lattice_grid_shape, initial_p0=initial_p0, epsilon=epsilon)
         self.assertEqual(lattice_grid_shape, rho.shape)
         self.assertEqual(lattice_grid_shape + (2,), u.shape)
         for i in range(lattice_grid_shape[0]):
@@ -50,7 +50,7 @@ class TestDensityComputation(unittest.TestCase):
             ]
         )
 
-        rho, u = shear_wave_decay_2(lattice_grid_shape=lattice_grid_shape, epsilon=epsilon)
+        rho, u = sinusoidal_velocity_x(lattice_grid_shape=lattice_grid_shape, epsilon=epsilon)
         self.assertEqual(lattice_grid_shape, rho.shape)
         self.assertEqual(lattice_grid_shape + (2,), u.shape)
 

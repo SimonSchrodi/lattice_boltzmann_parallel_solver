@@ -4,10 +4,13 @@ import matplotlib.pyplot as plt
 
 from src.lattice_boltzman_equation import compute_density, compute_velocity_field, streaming, equilibrium_distr_func, \
     lattice_boltzman_step
-from src.visualizations import visualize_velocity_field, visualize_density_contour_plot, visualize_density_surface_plot
+from src.visualizations import visualize_velocity_quiver, visualize_velocity_streamplot, \
+    visualize_density_contour_plot, visualize_density_surface_plot
 
-from src.initial_values import milestone_2_test_1_initial_val, milestone_2_test_2_initial_val, shear_wave_decay_1, \
-    shear_wave_decay_2
+from src.initial_values import milestone_2_test_1_initial_val, milestone_2_test_2_initial_val, sinusoidal_density_x, \
+    sinusoidal_velocity_x, density_1_velocity_0_initial
+
+from src.boundary_conditions import rigid_wall, moving_wall
 
 
 def milestone_1():
@@ -20,7 +23,7 @@ def milestone_1():
         density = compute_density(prob_density_func)
         velocity = compute_velocity_field(density, prob_density_func)
         prob_density_func = streaming(prob_density_func)
-        visualize_velocity_field(velocity, (lx, ly))
+        visualize_velocity_streamplot(velocity, (lx, ly))
 
 
 def milestone_2_test_1():
@@ -40,7 +43,7 @@ def milestone_2_test_2():
     time_steps = 10000
 
     density, velocity = milestone_2_test_2_initial_val((lx, ly))
-    f = equilibrium_distr_func(density, velocity, 9)
+    f = equilibrium_distr_func(density, velocity)
     for i in range(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
     visualize_density_surface_plot(density, (lx, ly))
@@ -53,8 +56,8 @@ def milestone_3_test_1():
     omega = 0.5
     time_steps = 1000
 
-    density, velocity = shear_wave_decay_1((lx, ly), initial_p0, epsilon)
-    f = equilibrium_distr_func(density, velocity, 9)
+    density, velocity = sinusoidal_density_x((lx, ly), initial_p0, epsilon)
+    f = equilibrium_distr_func(density, velocity)
     visualize_density_surface_plot(density, (lx, ly))
     vels = []
     for i in range(time_steps):
@@ -80,12 +83,12 @@ def milestone_3_test_1():
 
 def milestone_3_test_2():
     lx, ly = 50, 50
-    epsilon = 0.05
-    omega = 1.5
+    epsilon = 0.08
+    omega = 0.2
     time_steps = 1000
 
-    density, velocity = shear_wave_decay_2((lx, ly), epsilon)
-    f = equilibrium_distr_func(density, velocity, 9)
+    density, velocity = sinusoidal_velocity_x((lx, ly), epsilon)
+    f = equilibrium_distr_func(density, velocity)
     # visualize_density_surface_plot(density, (50, 50))
     vels = []
     for i in range(time_steps):
@@ -117,11 +120,21 @@ def milestone_4():
     omega = 0.5
     time_steps = 1000
 
-    density, velocity = shear_wave_decay_2((lx, ly), 0.08)
-    f = equilibrium_distr_func(density, velocity, 9)
-    visualize_density_surface_plot(density, (lx, ly))
+    def boundary(f_pre_streaming, f_post_streaming, density):
+        boundary_rigid_wall = np.zeros((lx, ly))
+        boundary_rigid_wall[:, -1] = np.ones(ly)
+        f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
+        boundary_moving_wall = np.zeros((lx, ly))
+        boundary_moving_wall[:, 0] = np.ones(ly)
+        u_w = np.array(
+            [10, 0]
+        )
+        f_post_streaming = moving_wall(boundary_moving_wall.astype(np.bool), u_w)(f_pre_streaming, f_post_streaming,
+                                                                                  density)
+        return f_post_streaming
+
+    density, velocity = density_1_velocity_0_initial((lx, ly))
+    f = equilibrium_distr_func(density, velocity)
     for i in range(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
-        if i % 10 == 0:
-            # visualize_density_surface_plot(density, (50, 50))
-            visualize_velocity_field(velocity, (lx, ly))
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+    visualize_velocity_streamplot(velocity, (lx, ly))
