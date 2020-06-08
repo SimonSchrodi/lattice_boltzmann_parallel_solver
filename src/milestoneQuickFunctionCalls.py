@@ -58,7 +58,7 @@ def milestone_3_test_1():
 
     density, velocity = sinusoidal_density_x((lx, ly), initial_p0, epsilon)
     f = equilibrium_distr_func(density, velocity)
-    #visualize_density_surface_plot(density, (lx, ly))
+    # visualize_density_surface_plot(density, (lx, ly))
     vels = []
     for i in range(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
@@ -140,13 +140,15 @@ def milestone_4():
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
     vx = velocity[..., 0]
 
-    for vec, y_coord in zip(vx[25, :],np.arange(0, ly)):
+    for vec, y_coord in zip(vx[25, :], np.arange(0, ly)):
         origin = [0, y_coord]
         plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
     plt.plot(vx[25, :], np.arange(0, ly), label='Simulated Solution', linewidth=1, c='blue', linestyle=':')
-    plt.plot(U*(ly-1-np.arange(0, ly))/ly, np.arange(0, ly), label='Analytical Solution', c='red', linestyle='--')
+    plt.plot(U * (ly - 1 - np.arange(0, ly)) / ly, np.arange(0, ly), label='Analytical Solution', c='red',
+             linestyle='--')
     max_vel = np.ceil(np.amax(vx[25, :])).astype(np.int) + 1
-    plt.plot(np.arange(0, max_vel), np.ones(max_vel)*(ly-1)+0.5, label='Rigid Wall', linewidth=1.5, c='orange', linestyle='-.')
+    plt.plot(np.arange(0, max_vel), np.ones(max_vel) * (ly - 1) + 0.5, label='Rigid Wall', linewidth=1.5,
+             c='orange', linestyle='-.')
     plt.plot(np.arange(0, max_vel), np.zeros(max_vel) - 0.5, label='Moving Wall', linewidth=1.5, c='green',
              linestyle='-')
     plt.ylabel('y coordinate')
@@ -166,7 +168,7 @@ def milestone_5():
         boundary_rigid_wall[:, -1] = np.ones(ly)
         boundary_rigid_wall[:, 0] = np.ones(ly)
         f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
-        #TODO x-direction dynamic presssure variation
+        # TODO x-direction dynamic presssure variation
         return f_post_streaming
 
     density, velocity = density_1_velocity_0_initial((lx, ly))

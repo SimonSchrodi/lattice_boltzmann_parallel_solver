@@ -130,7 +130,7 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (50, 50),
     velocities_for_viz = [velocity for i, velocity in enumerate(velocities) if
                           i % int(time_steps / (number_of_visualizations - 1)) == 0]  # -1 for the initial viz
     indizes_for_viz = [i for i, velocity in enumerate(velocities) if
-                        i % int(time_steps / (number_of_visualizations - 1)) == 0]  # -1 for the initial viz
+                       i % int(time_steps / (number_of_visualizations - 1)) == 0]  # -1 for the initial viz
 
     max_vel = np.amax(np.array(velocities_for_viz)[:, int(lx / 2), :, 0]) + np.amax(
         np.array(velocities_for_viz)[:, int(lx / 2), :, 0]) * 0.1

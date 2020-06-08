@@ -48,7 +48,7 @@ def outlet():
     raise NotImplementedError
 
 
-def periodic_with_pressure_variations(boundary:np.ndarray, p_in: float, p_out: float):
+def periodic_with_pressure_variations(boundary: np.ndarray, p_in: float, p_out: float):
     assert boundary.dtype == 'bool'
     assert np.all(boundary[0, :] == boundary[-1, :]) or np.all(boundary[:, 0] == boundary[:, -1])
     from src.lattice_boltzman_equation import equilibrium_distr_func
@@ -64,7 +64,8 @@ def periodic_with_pressure_variations(boundary:np.ndarray, p_in: float, p_out: f
         density_out = np.divide(p_out + p_out - p_in, c_s ** 2)
         density_out = np.ones_like(boundary[:, -1]) * density_out
 
-    def bc(f_pre_streaming: np.ndarray, f_post_streaming: np.ndarray, density: np.ndarray, velocity: np.ndarray, *argv) -> np.ndarray:
+    def bc(f_pre_streaming: np.ndarray, f_post_streaming: np.ndarray,
+           density: np.ndarray, velocity: np.ndarray, *argv) -> np.ndarray:
         assert boundary.shape == f_pre_streaming.shape[0:2]
         assert boundary.shape == f_post_streaming.shape[0:2]
 
