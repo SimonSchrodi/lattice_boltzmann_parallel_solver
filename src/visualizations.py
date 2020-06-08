@@ -17,8 +17,8 @@ def visualize_velocity_streamplot(velocity_field: np.ndarray, lattice_grid_shape
         y,
         velocity_field[..., 0],
         velocity_field[..., 1],
-        color=velocity_field[..., 1],
-        cmap='autumn'
+        color=np.linalg.norm(velocity_field, axis=-1),
+        cmap='seismic'
     )
     plt.xlim(0, lattice_grid_shape[0] - 1)
     plt.ylim(0, lattice_grid_shape[1] - 1)

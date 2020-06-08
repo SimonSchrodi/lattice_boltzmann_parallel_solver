@@ -123,7 +123,10 @@ def equilibrium_distr_func(density_func: np.ndarray, velocity_field: np.ndarray)
     return f_eq
 
 
-def lattice_boltzman_step(f, density, velocity, omega, boundary=None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarray, omega: float, boundary=None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    assert f.shape[0:2] == density.shape
+    assert f.shape[0:2] == velocity.shape[0:2]
+
     f_eq = equilibrium_distr_func(density, velocity)
 
     f_pre = f + (f_eq - f) * omega
