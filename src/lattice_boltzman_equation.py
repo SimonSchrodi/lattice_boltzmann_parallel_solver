@@ -72,11 +72,15 @@ def compute_velocity_field(density_func: np.ndarray, prob_density_func: np.ndarr
 
     ux = np.divide(
         np.sum(prob_density_func[:, :, [1, 5, 8]], axis=2) - np.sum(prob_density_func[:, :, [3, 6, 7]], axis=2),
-        density_func
+        density_func,
+        out=np.zeros_like(density_func),
+        where=density_func != 0
     )
     uy = np.divide(
         np.sum(prob_density_func[:, :, [2, 5, 6]], axis=2) - np.sum(prob_density_func[:, :, [4, 7, 8]], axis=2),
-        density_func
+        density_func,
+        out=np.zeros_like(density_func),
+        where=density_func != 0
     )
 
     u = np.dstack((ux, uy))
@@ -127,6 +131,7 @@ def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarr
         -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     assert f.shape[0:2] == density.shape
     assert f.shape[0:2] == velocity.shape[0:2]
+    assert 0 < omega < 2
 
     f_eq = equilibrium_distr_func(density, velocity)
 
