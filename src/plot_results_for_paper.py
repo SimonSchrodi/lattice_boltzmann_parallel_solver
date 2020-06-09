@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+from mpl_toolkits.mplot3d import Axes3D
 from typing import Tuple
 import numpy as np
 from scipy.optimize import curve_fit
@@ -8,46 +10,77 @@ from src.lattice_boltzman_equation import equilibrium_distr_func, lattice_boltzm
 from src.boundary_conditions import rigid_wall, moving_wall
 
 
-def plot_evolution_of_density():
-    raise NotImplementedError
+def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
+                              initial_p0: float = 0.5,
+                              epsilon: float = 0.08,
+                              omega: float = 1.0,
+                              time_steps: int = 2000,
+                              number_of_visualizations: int = 20):
+    assert 0 < omega < 2
+    assert time_steps > 0
+    assert number_of_visualizations % 5 == 0
+
+    density, velocity = sinusoidal_density_x(lattice_grid_shape, initial_p0, epsilon)
+    f = equilibrium_distr_func(density, velocity)
+
+    fig, ax = plt.subplots(int(number_of_visualizations / 5), 5, sharex=True, sharey=True)
+    ax[0, 0].plot(np.arange(0, lattice_grid_shape[0]), density[:, int(lattice_grid_shape[0] / 2)])
+    ax[0, 0].set_title('Initial')
+    row_index, col_index = 0, 1
+    for i in range(time_steps):
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
+        if (i + 1) % int(time_steps / number_of_visualizations) == 0:
+            ax[row_index, col_index].plot(np.arange(0, lattice_grid_shape[-1]),
+                                          density[:, int(lattice_grid_shape[0] / 2)])
+            ax[row_index, col_index].set_title('Step ' + str(i))
+            col_index += 1
+            if col_index == 5:
+                col_index = 0
+                row_index += 1
+            if row_index == 4:
+                break
+
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+    fig.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9,
+                        wspace=0.75, hspace=0.5)
+    plt.savefig(r'../figures/shear_wave_decay/evolution_density_surface.svg')
 
 
 def plot_evolution_of_velocity(lattice_grid_shape: Tuple[int, int] = (50, 50),
                                epsilon: float = 0.08,
-                               omega: float = 1.5,
-                               time_steps: int = 1000):
+                               omega: float = 1.0,
+                               time_steps: int = 2000,
+                               number_of_visualizations: int = 20):
     assert 0 < omega < 2
     assert time_steps > 0
+    assert number_of_visualizations % 5 == 0
 
     density, velocity = sinusoidal_velocity_x(lattice_grid_shape, epsilon)
-
     f = equilibrium_distr_func(density, velocity)
 
-    vels = []
+    fig, ax = plt.subplots(int(number_of_visualizations / 5), 5, sharex=True, sharey=True)
+    ax[0, 0].plot(np.arange(0, lattice_grid_shape[-1]), velocity[int(lattice_grid_shape[0] / 2), :, 0])
+    ax[0, 0].set_title('Initial')
+    row_index, col_index = 0, 1
     for i in range(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
-        vel_min = np.amin(velocity)
-        vel_max = np.amax(velocity)
-        vels.append(
-            np.abs(vel_min) if np.abs(vel_min) > np.abs(vel_max) else np.abs(vel_max)
-        )
-
-    x = np.arange(0, time_steps)
-    vels = np.array(vels)
-    viscosity_sim = curve_fit(
-        lambda t, v: epsilon * np.exp(-v * np.power(2 * np.pi / lattice_grid_shape[0], 2) * t), x, vels
-    )[0][0]
-    plt.plot(np.arange(0, time_steps), np.array(vels), label='Simulated (v=' + str(round(viscosity_sim, 3)) + ")")
-    viscosity = (1 / 3) * (1 / omega - 0.5)
+        if (i + 1) % int(time_steps / number_of_visualizations) == 0:
+            ax[row_index, col_index].plot(np.arange(0, lattice_grid_shape[-1]),
+                                          velocity[int(lattice_grid_shape[0] / 2), :, 0])
+            ax[row_index, col_index].set_title('Step ' + str(i))
+            col_index += 1
+            if col_index == 5:
+                col_index = 0
+                row_index += 1
+            if row_index == 4:
+                break
 
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
-    plt.plot(x, epsilon * np.exp(-viscosity * np.power(2 * np.pi / lattice_grid_shape[0], 2) * x),
-             label='Analytical (v=' + str(round(viscosity, 3)) + ")")
-    plt.legend()
-    plt.xlabel('Time t')
-    plt.ylabel('Amplitude a(t)')
-    plt.savefig(r'../figures/shear_wave_decay/evolution_velocity.svg')
+    fig.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9,
+                        wspace=0.75, hspace=0.5)
+    plt.savefig(r'../figures/shear_wave_decay/evolution_velocity_surface.svg')
 
 
 def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 50),
@@ -78,9 +111,8 @@ def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 
             x = np.arange(0, time_steps)
             vels = np.array(vels)
             viscosity_sim.append(
-                curve_fit(lambda t, v: epsilon * np.exp(-v * np.power(2 * np.pi / lattice_grid_shape[0], 2) * t), x,
-                          vels)[0][
-                    0])
+                curve_fit(lambda t, v: epsilon * np.exp(-v * np.power(2 * np.pi / lattice_grid_shape[-1], 2) * t), x,
+                          vels)[0][0])
             viscosity_true.append((1 / 3) * (1 / om - 0.5))
 
         viscosity_sim = np.array(viscosity_sim)
@@ -104,7 +136,7 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (50, 50),
     assert U <= 1 / np.sqrt(3)
 
     lx, ly = lattice_grid_shape
-    fig, ax = plt.subplots(int(number_of_visualizations / 5), 5)
+    fig, ax = plt.subplots(int(number_of_visualizations / 5), 5, sharex=True, sharey=True)
     row_index, col_index = 0, 0
 
     def boundary(f_pre_streaming, f_post_streaming, density):
@@ -154,9 +186,11 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (50, 50),
                                       label='Moving Wall',
                                       linewidth=1.5, c='green',
                                       linestyle='-')
-        ax[row_index, col_index].set_axis_off()
-        ax[row_index, col_index].set_axis_off()
-        ax[row_index, col_index].set_title('Step ' + str(i))
+
+        if i == 0:
+            ax[row_index, col_index].set_title('Initial')
+        else:
+            ax[row_index, col_index].set_title('Step ' + str(i))
 
         col_index += 1
         if col_index == 5:
@@ -166,7 +200,7 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (50, 50),
     handles, labels = ax[1, 1].get_legend_handles_labels()
     fig.legend(handles, labels, loc='center right', borderaxespad=0.1)
     fig.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9,
-                        wspace=0.75, hspace=0.5)
+                        wspace=0.75, hspace=1.5)
     plt.subplots_adjust(right=0.77)
 
     plt.rc('text', usetex=True)

@@ -50,11 +50,11 @@ def milestone_2_test_2():
 
 
 def milestone_3_test_1():
-    lx, ly = 50, 50
+    lx, ly = 50, 150
     initial_p0 = 0.5
-    epsilon = 0.2
+    epsilon = 0.3
     omega = 1.5
-    time_steps = 1000
+    time_steps = 2000
 
     density, velocity = sinusoidal_density_x((lx, ly), initial_p0, epsilon)
     f = equilibrium_distr_func(density, velocity)
@@ -67,13 +67,21 @@ def milestone_3_test_1():
         vels.append(
             np.abs(vel_min) if np.abs(vel_min) > np.abs(vel_max) else np.abs(vel_max)
         )
+        # if i % 1000 == 0:
+        #    visualize_density_surface_plot(density, (lx, ly))
 
-    x = t = np.arange(0, time_steps)
+    x = np.arange(0, time_steps)
     vels = np.array(vels)
-    viscosity_sim = curve_fit(lambda t, v: epsilon * np.exp(-v * np.power(2 * np.pi / lx, 2) * t), x, vels)[0][0]
+    # from scipy.signal import argrelextrema
+    # indizes = argrelextrema(np.array(vels), np.greater)
+    # a = vels[indizes]
+    # plt.plot(np.array(indizes).squeeze(), a, label='Upper Bound')
+    viscosity_sim = curve_fit(lambda t, v: epsilon * np.exp(-v * np.power(2 * np.pi / ly, 2) * t), x, vels)[0][0]
+    # viscosity_sim = curve_fit(lambda t, v: epsilon * np.exp(-v * np.power(2 * np.pi / ly, 2) * t),
+    # np.array(indizes).squeeze(), a)[0][0]
     plt.plot(np.arange(0, time_steps), np.array(vels), label='Simulated (v=' + str(round(viscosity_sim, 3)) + ")")
     viscosity = (1 / 3) * (1 / omega - 0.5)
-    plt.plot(t, epsilon * np.exp(-viscosity * np.power(2 * np.pi / lx, 2) * t),
+    plt.plot(x, epsilon * np.exp(-viscosity * np.power(2 * np.pi / lx, 2) * x),
              label='Analytical (v=' + str(viscosity) + ")")
     plt.legend()
     plt.xlabel('Time t')
@@ -82,19 +90,19 @@ def milestone_3_test_1():
 
 
 def milestone_3_test_2():
-    lx, ly = 50, 50
+    lx, ly = 50, 200
     epsilon = 0.08
-    omega = 0.4
-    time_steps = 1000
+    omega = 0.5
+    time_steps = 2000
 
     density, velocity = sinusoidal_velocity_x((lx, ly), epsilon)
     f = equilibrium_distr_func(density, velocity)
-    # visualize_density_surface_plot(density, (50, 50))
+    # visualize_density_surface_plot(velocity[..., 1], (lx, ly))
     vels = []
     for i in range(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
         # if i % 100 == 0:
-        # visualize_density_surface_plot(density, (50, 50))
+        #    visualize_density_surface_plot(velocity[..., 0], (lx, ly))
         # visualize_velocity_field(velocity, (50, 50))
         vel_min = np.amin(velocity)
         vel_max = np.amax(velocity)
@@ -104,10 +112,10 @@ def milestone_3_test_2():
 
     x = t = np.arange(0, time_steps)
     vels = np.array(vels)
-    viscosity_sim = curve_fit(lambda t, v: epsilon * np.exp(-v * np.power(2 * np.pi / lx, 2) * t), x, vels)[0][0]
+    viscosity_sim = curve_fit(lambda t, v: epsilon * np.exp(-v * np.power(2 * np.pi / ly, 2) * t), x, vels)[0][0]
     plt.plot(np.arange(0, time_steps), np.array(vels), label='Simulated (v=' + str(round(viscosity_sim, 3)) + ")")
     viscosity = (1 / 3) * (1 / omega - 0.5)
-    plt.plot(t, epsilon * np.exp(-viscosity * np.power(2 * np.pi / lx, 2) * t),
+    plt.plot(t, epsilon * np.exp(-viscosity * np.power(2 * np.pi / ly, 2) * t),
              label='Analytical (v=' + str(round(viscosity, 3)) + ")")
     plt.legend()
     plt.xlabel('Time t')

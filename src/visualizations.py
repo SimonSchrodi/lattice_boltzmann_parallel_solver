@@ -48,6 +48,8 @@ def visualize_density_surface_plot(density: np.ndarray, lattice_grid_shape: Tupl
     m = cm.ScalarMappable(cmap=cmap)
     m.set_array(density)
     plt.title('Surface Plot of Density Function')
+    plt.xlabel('x')
+    plt.ylabel('y')
     plt.colorbar(m)
     plt.show()
 
