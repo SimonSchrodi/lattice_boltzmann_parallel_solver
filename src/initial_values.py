@@ -38,10 +38,7 @@ def sinusoidal_density_x(lattice_grid_shape: Tuple[int, int], initial_p0: float,
             lattice_grid_shape[0]
         )
     )
-    rho = np.array(
-        [rho_x for _ in range(lattice_grid_shape[1])]
-    )
-    rho = rho.T
+    rho = np.tile(rho_x, (lattice_grid_shape[1], 1)).T
     u = np.zeros(lattice_grid_shape + (2,))
     return rho, u
 
@@ -69,9 +66,7 @@ def sinusoidal_velocity_x(lattice_grid_shape: Tuple[int, int], epsilon: float):
             lattice_grid_shape[1]
         )
     )
-    ux = np.array(
-        [u_y for _ in range(lattice_grid_shape[0])]
-    )
+    ux = np.tile(u_y, (lattice_grid_shape[0], 1))
     u = np.dstack([ux, np.zeros(lattice_grid_shape)])
     return rho, u
 
