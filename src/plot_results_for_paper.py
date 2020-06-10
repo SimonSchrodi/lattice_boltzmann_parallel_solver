@@ -4,6 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from typing import Tuple
 import numpy as np
 from scipy.optimize import curve_fit
+from scipy.signal import argrelextrema
 
 from src.initial_values import sinusoidal_density_x, sinusoidal_velocity_x, density_1_velocity_0_initial
 from src.lattice_boltzman_equation import equilibrium_distr_func, lattice_boltzman_step, lattice_boltzman_solver
@@ -85,14 +86,15 @@ def plot_evolution_of_velocity(lattice_grid_shape: Tuple[int, int] = (50, 50),
 
 def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 50),
                                      initial_p0: float = 0.5,
-                                     epsilon: float = 0.08,
-                                     time_steps: int = 5000,
-                                     omega_discretization: int = 10):
-    fig, ax = plt.subplots(1, 2, sharex=True)
+                                     epsilon_p: float = 0.01,
+                                     epsilon_v: float = 0.08,
+                                     time_steps: int = 1000,
+                                     omega_discretization: int = 50):
+    fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
     omega = np.linspace(0.01, 1.99, omega_discretization)
 
-    initial_distr_funcs = [sinusoidal_density_x(lattice_grid_shape, initial_p0, epsilon),
-                           sinusoidal_velocity_x(lattice_grid_shape, epsilon)]
+    initial_distr_funcs = [sinusoidal_density_x(lattice_grid_shape, initial_p0, epsilon_p),
+                           sinusoidal_velocity_x(lattice_grid_shape, epsilon_v)]
 
     for i, initial in enumerate(initial_distr_funcs):
         viscosity_sim = []
@@ -101,18 +103,38 @@ def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 
             density, velocity = initial
             f = equilibrium_distr_func(density, velocity)
             vels = []
+            dens = []
             for _ in range(time_steps):
                 f, density, velocity = lattice_boltzman_step(f, density, velocity, om)
-                vel_min = np.amin(velocity)
-                vel_max = np.amax(velocity)
-                vels.append(
-                    np.abs(vel_min) if np.abs(vel_min) > np.abs(vel_max) else np.abs(vel_max)
-                )
+                if i == 0:
+                    den_min = np.amin(density)
+                    den_max = np.amax(density)
+                    dens.append(
+                        np.abs(den_min) - initial_p0 if np.abs(den_min) > np.abs(den_max) else np.abs(
+                            den_max) - initial_p0
+                    )
+                elif i == 1:
+                    vel_min = np.amin(velocity)
+                    vel_max = np.amax(velocity)
+                    vels.append(
+                        np.abs(vel_min) if np.abs(vel_min) > np.abs(vel_max) else np.abs(vel_max)
+                    )
+
             x = np.arange(0, time_steps)
-            vels = np.array(vels)
-            viscosity_sim.append(
-                curve_fit(lambda t, v: epsilon * np.exp(-v * np.power(2 * np.pi / lattice_grid_shape[-1], 2) * t), x,
-                          vels)[0][0])
+            if i == 0:
+                dens = np.array(dens)
+                indizes = argrelextrema(dens, np.greater)
+                a = dens[indizes]
+                viscosity_sim.append(
+                    curve_fit(lambda t, v: epsilon_p * np.exp(-v * np.power(2 * np.pi / lattice_grid_shape[0], 2) * t),
+                              np.array(indizes).squeeze(), a)[0][0]
+                )
+            elif i == 1:
+                vels = np.array(vels)
+                viscosity_sim.append(
+                    curve_fit(lambda t, v: epsilon_v * np.exp(-v * np.power(2 * np.pi / lattice_grid_shape[-1], 2) * t),
+                              x,
+                              vels)[0][0])
             viscosity_true.append((1 / 3) * (1 / om - 0.5))
 
         viscosity_sim = np.array(viscosity_sim)
@@ -120,17 +142,21 @@ def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 
         viscosity_true = np.array(viscosity_true)
         ax[i].plot(omega, viscosity_true, label='Analytical')
         ax[i].legend()
-        ax[i].set_xlabel('Time t')
-        ax[i].set_ylabel('Amplitude a(t)')
-    plt.show()
+        ax[i].set_yscale('log')
+        ax[i].set_title("Sinusoidal Density" if i == 0 else "Sinusoidal Velocity")
+        ax[i].set_xlabel('Omega')
+        ax[i].set_ylabel(r'Viscosity $\nu$ [$\frac{m²}{s}$]')
+
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
 
     plt.savefig(r'../figures/shear_wave_decay/meas_visc_vs_omega.svg')
 
 
-def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (50, 50),
-                                omega: float = 0.5,
-                                U: float = 0.5,
-                                time_steps: int = 5000,
+def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
+                                omega: float = 1.0,
+                                U: float = 0.01,
+                                time_steps: int = 800,
                                 number_of_visualizations: int = 30):
     assert number_of_visualizations % 5 == 0
     assert U <= 1 / np.sqrt(3)
@@ -148,8 +174,8 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (50, 50),
         u_w = np.array(
             [U, 0]
         )
-        f_post_streaming = moving_wall(boundary_moving_wall.astype(np.bool), u_w)(f_pre_streaming, f_post_streaming,
-                                                                                  density)
+        f_post_streaming = moving_wall(boundary_moving_wall.astype(np.bool), u_w, density)(f_pre_streaming,
+                                                                                           f_post_streaming)
         return f_post_streaming
 
     density, velocity = density_1_velocity_0_initial((lx, ly))
@@ -175,7 +201,7 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (50, 50),
                                             headwidth=3, width=0.0025)
         ax[row_index, col_index].plot(vx[int(lx / 2), :], np.arange(0, ly), label='Simul. Sol.', linewidth=1,
                                       c='blue', linestyle=':')
-        ax[row_index, col_index].plot(U * (ly - 1 - np.arange(0, ly)) / ly, np.arange(0, ly),
+        ax[row_index, col_index].plot(U * (ly - 1 - np.arange(0, ly)) / (ly - 1), np.arange(0, ly),
                                       label='Analyt. Sol.', c='red',
                                       linestyle='--')
         ax[row_index, col_index].plot(np.linspace(0, max_vel, 100),
@@ -208,27 +234,25 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (50, 50),
 
     plt.savefig(r'../figures/couette_flow/vel_vectors_evolution.svg', bbox_inches='tight')
 
-    # plt.show()
 
-
-def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (50, 50),
-                                  omega: float = 0.5,
-                                  U: float = 0.5,
-                                  time_steps: int = 10000):
+def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30),
+                                  omega: float = 1.0,
+                                  U: float = 0.05,
+                                  time_steps: int = 4000):
     assert U <= 1 / np.sqrt(3)
     lx, ly = lattice_grid_shape
 
     def boundary(f_pre_streaming, f_post_streaming, density):
-        boundary_rigid_wall = np.zeros((lx, ly))
-        boundary_rigid_wall[:, -1] = np.ones(ly)
+        boundary_rigid_wall = np.zeros(lattice_grid_shape)
+        boundary_rigid_wall[:, -1] = np.ones(lx)
         f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
-        boundary_moving_wall = np.zeros((lx, ly))
-        boundary_moving_wall[:, 0] = np.ones(ly)
+        boundary_moving_wall = np.zeros(lattice_grid_shape)
+        boundary_moving_wall[:, 0] = np.ones(lx)
         u_w = np.array(
             [U, 0]
         )
-        f_post_streaming = moving_wall(boundary_moving_wall.astype(np.bool), u_w)(f_pre_streaming, f_post_streaming,
-                                                                                  density)
+        f_post_streaming = moving_wall(boundary_moving_wall.astype(np.bool), u_w, density)(f_pre_streaming,
+                                                                                           f_post_streaming)
         return f_post_streaming
 
     density, velocity = density_1_velocity_0_initial((lx, ly))
@@ -241,13 +265,12 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (50, 50)
         origin = [0, y_coord]
         plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
     plt.plot(vx[int(lx / 2), :], np.arange(0, ly), label='Simul. Sol.', linewidth=1, c='blue', linestyle=':')
-    plt.plot(U * (ly - 1 - np.arange(0, ly)) / ly, np.arange(0, ly), label='Analyt. Sol.', c='red',
+    plt.plot(U * (ly - 1 - np.arange(0, ly)) / (ly-1), np.arange(0, ly), label='Analyt. Sol.', c='red',
              linestyle='--')
-    max_vel = np.amax(vx[int(lx / 2), :]) + np.amax(vx[int(lx / 2), :]) * 0.1
-    plt.plot(np.linspace(0, max_vel, 100), np.ones_like(np.linspace(0, max_vel, 100)) * (ly - 1) + 0.5,
+    plt.plot(np.linspace(0, U, 100), np.ones_like(np.linspace(0, U, 100)) * (ly - 1) + 0.5,
              label='Rigid Wall', linewidth=1.5, c='orange',
              linestyle='-.')
-    plt.plot(np.linspace(0, max_vel, 100), np.zeros_like(np.linspace(0, max_vel, 100)) - 0.5, label='Moving Wall',
+    plt.plot(np.linspace(0, U, 100), np.zeros_like(np.linspace(0, U, 100)) - 0.5, label='Moving Wall',
              linewidth=1.5, c='green',
              linestyle='-')
     plt.ylabel('y coordinate')
@@ -258,5 +281,3 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (50, 50)
     plt.rc('font', family='serif')
 
     plt.savefig(r'../figures/couette_flow/vel_vectors.svg', bbox_inches='tight')
-
-    # plt.show()

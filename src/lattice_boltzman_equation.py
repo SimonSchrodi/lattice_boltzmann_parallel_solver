@@ -26,6 +26,11 @@ def get_velocity_sets() -> np.ndarray:
 
 
 def vel_to_opp_vel_mapping() -> np.ndarray:
+    """
+    Opposite direction
+    Returns: array with opposite directions of D2Q9
+
+    """
     return np.array(
         [0, 3, 4, 1, 2, 7, 8, 5, 6]
     )

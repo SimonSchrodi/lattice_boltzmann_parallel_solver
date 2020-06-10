@@ -72,4 +72,12 @@ def sinusoidal_velocity_x(lattice_grid_shape: Tuple[int, int], epsilon: float):
 
 
 def density_1_velocity_0_initial(lattice_grid_shape: Tuple[int, int]):
+    """
+    Returns density with 1s and velocity with 0s
+    Args:
+        lattice_grid_shape: lattice grid size
+
+    Returns: density with 1s, velocity with 0s
+
+    """
     return np.ones(lattice_grid_shape), np.zeros(lattice_grid_shape + (2,))
