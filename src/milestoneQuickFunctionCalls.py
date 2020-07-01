@@ -10,7 +10,7 @@ from src.visualizations import visualize_velocity_quiver, visualize_velocity_str
 from src.initial_values import milestone_2_test_1_initial_val, milestone_2_test_2_initial_val, sinusoidal_density_x, \
     sinusoidal_velocity_x, density_1_velocity_0_initial
 
-from src.boundary_conditions import rigid_wall, moving_wall
+from src.boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_variations
 
 
 def milestone_1():
@@ -90,9 +90,9 @@ def milestone_3_test_1():
     a = epsilon * np.exp(-viscosity_sim * np.power(2 * np.pi / lx, 2)) * x
     b = epsilon * np.exp(-viscosity * np.power(2 * np.pi / lx, 2)) * x
 
-    print(viscosity*0.8 <= viscosity_sim <= viscosity*1.2)
+    print(viscosity * 0.8 <= viscosity_sim <= viscosity * 1.2)
     print(np.divide(
-        viscosity-viscosity_sim,
+        viscosity - viscosity_sim,
         viscosity
     ))
 
@@ -137,7 +137,7 @@ def milestone_4():
     time_steps = 5000
     U = 50
 
-    def boundary(f_pre_streaming, f_post_streaming, density):
+    def boundary(f_pre_streaming, f_post_streaming, density, velocity):
         boundary_rigid_wall = np.zeros((lx, ly))
         boundary_rigid_wall[:, -1] = np.ones(ly)
         f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
@@ -146,8 +146,8 @@ def milestone_4():
         u_w = np.array(
             [U, 0]
         )
-        f_post_streaming = moving_wall(boundary_moving_wall.astype(np.bool), u_w)(f_pre_streaming, f_post_streaming,
-                                                                                  density)
+        f_post_streaming = moving_wall(boundary_moving_wall.astype(np.bool), u_w, density)(f_pre_streaming,
+                                                                                           f_post_streaming)
         return f_post_streaming
 
     density, velocity = density_1_velocity_0_initial((lx, ly))
@@ -160,7 +160,7 @@ def milestone_4():
         origin = [0, y_coord]
         plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
     plt.plot(vx[25, :], np.arange(0, ly), label='Simulated Solution', linewidth=1, c='blue', linestyle=':')
-    plt.plot(U * (ly - 1 - np.arange(0, ly)) / ly, np.arange(0, ly), label='Analytical Solution', c='red',
+    plt.plot(U * (ly - np.arange(0, ly + 1)) / ly, np.arange(0, ly + 1) - 0.5, label='Analyt. Sol.', c='red',
              linestyle='--')
     max_vel = np.ceil(np.amax(vx[25, :])).astype(np.int) + 1
     plt.plot(np.arange(0, max_vel), np.ones(max_vel) * (ly - 1) + 0.5, label='Rigid Wall', linewidth=1.5,
@@ -174,20 +174,79 @@ def milestone_4():
 
 
 def milestone_5():
-    lx, ly = 50, 50
-    omega = 0.5
+    lx, ly = 200, 30
+    omega = 1.5
     time_steps = 5000
-    U = 50
+    delta_p = 0.001111
+    rho_0 = 1
+    delta_rho = delta_p*3
+    rho_inlet = rho_0 + delta_rho
+    rho_outlet = rho_0
+    p_in = rho_inlet / 3
+    p_out = rho_outlet / 3
 
-    def boundary(f_pre_streaming, f_post_streaming, density):
+    def boundary(f_pre_streaming, f_post_streaming, density, velocity):
+        boundary = np.zeros((lx, ly))
+        boundary[0, :] = np.ones(ly)
+        boundary[-1, :] = np.ones(ly)
+        f_post_streaming = periodic_with_pressure_variations(boundary.astype(np.bool), p_in, p_out)(
+            f_pre_streaming,
+            f_post_streaming,
+            density, velocity)
+
         boundary_rigid_wall = np.zeros((lx, ly))
-        boundary_rigid_wall[:, -1] = np.ones(ly)
-        boundary_rigid_wall[:, 0] = np.ones(ly)
+        boundary_rigid_wall[:, 0] = np.ones(lx)
         f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
-        # TODO x-direction dynamic presssure variation
+        boundary_rigid_wall = np.zeros((lx, ly))
+        boundary_rigid_wall[:, -1] = np.ones(lx)
+        f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
+
         return f_post_streaming
 
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
+    vels = []
     for i in range(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+        print(i, np.sum(density))
+        vel_min = np.amin(velocity)
+        vel_max = np.amax(velocity)
+        vels.append(
+            np.abs(vel_min) if np.abs(vel_min) > np.abs(vel_max) else np.abs(vel_max)
+        )
+
+    vx = velocity[..., 0]
+    print(np.amax(velocity))
+    x_coord = lx // 2
+    centerline = ly // 2
+
+    for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
+        origin = [0, y_coord]
+        plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
+    plt.plot(vx[x_coord, :], np.arange(0, ly), label='Simulated Solution', linewidth=1, c='blue', linestyle=':')
+
+    viscosity = (1 / 3) * (1 / omega - 0.5)
+    dynamic_viscosity = viscosity * np.mean(density[x_coord, :])
+    h = ly
+    y = np.arange(0, ly + 1)
+    dp_dx = np.divide(p_out - p_in, lx)
+    uy = -np.reciprocal(2 * dynamic_viscosity) * dp_dx * y * (h - y)
+    print(np.amax(uy))
+    plt.plot(uy, y - 0.5, label='Analytical Solution', c='red',
+             linestyle='--')
+    plt.ylabel('y coordinate')
+    plt.xlabel('velocity in y-direction')
+    plt.legend()
+    plt.show()
+
+    plt.plot(np.arange(0, lx - 2), density[1:-1, centerline] / 3, label='Pressure along centerline')
+    plt.plot(np.arange(0, lx - 2), np.ones_like(np.arange(0, lx - 2)) * p_out, label='Outgoing Pressure')
+    plt.plot(np.arange(0, lx - 2), np.ones_like(np.arange(0, lx - 2)) * p_in,
+             label='Ingoing Pressure')
+    plt.xlabel('x coordinate')
+    plt.ylabel('density along centerline')
+    plt.legend()
+    plt.show()
+
+    print(np.amax(density[1:-1, centerline])/3, p_in)
+    print(np.amin(density[1:-1, centerline])/3, p_out)

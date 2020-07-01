@@ -5,10 +5,11 @@ from typing import Tuple
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
+from collections import OrderedDict
 
 from src.initial_values import sinusoidal_density_x, sinusoidal_velocity_x, density_1_velocity_0_initial
 from src.lattice_boltzman_equation import equilibrium_distr_func, lattice_boltzman_step, lattice_boltzman_solver
-from src.boundary_conditions import rigid_wall, moving_wall
+from src.boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_variations
 
 
 def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
@@ -165,7 +166,7 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
     fig, ax = plt.subplots(int(number_of_visualizations / 5), 5, sharex=True, sharey=True)
     row_index, col_index = 0, 0
 
-    def boundary(f_pre_streaming, f_post_streaming, density):
+    def boundary(f_pre_streaming, f_post_streaming, density, velocity):
         boundary_rigid_wall = np.zeros((lx, ly))
         boundary_rigid_wall[:, -1] = np.ones(ly)
         f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
@@ -201,7 +202,7 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
                                             headwidth=3, width=0.0025)
         ax[row_index, col_index].plot(vx[int(lx / 2), :], np.arange(0, ly), label='Simul. Sol.', linewidth=1,
                                       c='blue', linestyle=':')
-        ax[row_index, col_index].plot(U * (ly - 1 - np.arange(0, ly)) / (ly - 1), np.arange(0, ly),
+        ax[row_index, col_index].plot(U * (ly - np.arange(0, ly + 1)) / ly, np.arange(0, ly + 1) - 0.5,
                                       label='Analyt. Sol.', c='red',
                                       linestyle='--')
         ax[row_index, col_index].plot(np.linspace(0, max_vel, 100),
@@ -242,7 +243,7 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
     assert U <= 1 / np.sqrt(3)
     lx, ly = lattice_grid_shape
 
-    def boundary(f_pre_streaming, f_post_streaming, density):
+    def boundary(f_pre_streaming, f_post_streaming, density, velocity):
         boundary_rigid_wall = np.zeros(lattice_grid_shape)
         boundary_rigid_wall[:, -1] = np.ones(lx)
         f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
@@ -265,7 +266,7 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
         origin = [0, y_coord]
         plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
     plt.plot(vx[int(lx / 2), :], np.arange(0, ly), label='Simul. Sol.', linewidth=1, c='blue', linestyle=':')
-    plt.plot(U * (ly - 1 - np.arange(0, ly)) / (ly-1), np.arange(0, ly), label='Analyt. Sol.', c='red',
+    plt.plot(U * (ly - np.arange(0, ly + 1)) / ly, np.arange(0, ly + 1) - 0.5, label='Analyt. Sol.', c='red',
              linestyle='--')
     plt.plot(np.linspace(0, U, 100), np.ones_like(np.linspace(0, U, 100)) * (ly - 1) + 0.5,
              label='Rigid Wall', linewidth=1.5, c='orange',
@@ -274,10 +275,188 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
              linewidth=1.5, c='green',
              linestyle='-')
     plt.ylabel('y coordinate')
-    plt.xlabel('velocity in y-direction')
+    plt.xlabel(r'Velocity in y-direction $u$ [$\frac{m}{s}$]')
     plt.legend()
 
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
     plt.savefig(r'../figures/couette_flow/vel_vectors.svg', bbox_inches='tight')
+
+
+def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200, 30),
+                                     omega: float = 1.5,
+                                     delta_p: float = 0.001111,
+                                     time_steps: int = 5000):
+    lx, ly = lattice_grid_shape
+
+    rho_0 = 1
+    delta_rho = delta_p * 3
+    rho_inlet = rho_0 + delta_rho
+    rho_outlet = rho_0
+    p_in = rho_inlet / 3
+    p_out = rho_outlet / 3
+
+    def boundary(f_pre_streaming, f_post_streaming, density, velocity):
+        boundary = np.zeros((lx, ly))
+        boundary[0, :] = np.ones(ly)
+        boundary[-1, :] = np.ones(ly)
+        f_post_streaming = periodic_with_pressure_variations(boundary.astype(np.bool), p_in, p_out)(
+            f_pre_streaming,
+            f_post_streaming,
+            density, velocity)
+
+        boundary_rigid_wall = np.zeros((lx, ly))
+        boundary_rigid_wall[:, 0] = np.ones(lx)
+        f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
+        boundary_rigid_wall = np.zeros((lx, ly))
+        boundary_rigid_wall[:, -1] = np.ones(lx)
+        f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
+
+        return f_post_streaming
+
+    density, velocity = density_1_velocity_0_initial((lx, ly))
+    f = equilibrium_distr_func(density, velocity)
+    for i in range(time_steps):
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+
+    vx = velocity[..., 0]
+    x_coord = lx // 2
+    centerline = ly // 2
+
+    for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
+        origin = [0, y_coord]
+        plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
+    plt.plot(vx[x_coord, :], np.arange(0, ly), label='Sim. Sol.', linewidth=1, c='blue', linestyle=':')
+
+    viscosity = (1 / 3) * (1 / omega - 0.5)
+    dynamic_viscosity = viscosity * np.mean(density[x_coord, :])
+    h = ly
+    y = np.arange(0, ly + 1)
+    dp_dx = np.divide(p_out - p_in, lx)
+    uy = -np.reciprocal(2 * dynamic_viscosity) * dp_dx * y * (h - y)
+    plt.plot(uy, y - 0.5, label='Analyt. Sol.', c='red',
+             linestyle='--')
+
+    plt.plot(np.linspace(0, np.amax(vx) * 1.05, 100), np.zeros_like(np.linspace(0, np.amax(vx) * 1.05, 100)) - 0.5,
+             label='Rigid Wall',
+             linewidth=1.5, c='green',
+             linestyle='-')
+    plt.plot(np.linspace(0, np.amax(vx) * 1.05, 100),
+             np.ones_like(np.linspace(0, np.amax(vx) * 1.05, 100)) * (ly - 1) + 0.5,
+             label='Rigid Wall',
+             linewidth=1.5, c='green',
+             linestyle='-')
+
+    plt.ylabel('y coordinate')
+    plt.xlabel(r'Velocity in y-direction $u$ [$\frac{m}{s}$]')
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = OrderedDict(zip(labels, handles))
+    plt.legend(by_label.values(), by_label.keys())
+    plt.legend(by_label.values(), by_label.keys(), loc='lower right')
+
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    plt.savefig(r'../figures/poiseuille_flow/vel_vectors.svg', bbox_inches='tight')
+
+    plt.close()
+
+    plt.plot(np.arange(0, lx - 2), density[1:-1, centerline] / 3, label='Pressure along centerline')
+    plt.plot(np.arange(0, lx - 2), np.ones_like(np.arange(0, lx - 2)) * p_out, label='Outgoing Pressure')
+    plt.plot(np.arange(0, lx - 2), np.ones_like(np.arange(0, lx - 2)) * p_in,
+             label='Ingoing Pressure')
+    plt.xlabel('x coordinate')
+    plt.ylabel(r'pressure along centerline $p$ [$Pa$]')
+    plt.legend()
+
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    plt.savefig(r'../figures/poiseuille_flow/density_along_centerline.svg', bbox_inches='tight')
+
+
+def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 30),
+                                   omega: float = 1.5,
+                                   delta_p: float = 0.001111,
+                                   time_steps: int = 5000,
+                                   number_of_visualizations: int = 30):
+    assert number_of_visualizations % 5 == 0
+
+    lx, ly = lattice_grid_shape
+
+    fig, ax = plt.subplots(int(number_of_visualizations / 5), 5, sharex=True, sharey=True)
+    row_index, col_index = 0, 0
+
+    rho_0 = 1
+    delta_rho = delta_p * 3
+    rho_inlet = rho_0 + delta_rho
+    rho_outlet = rho_0
+    p_in = rho_inlet / 3
+    p_out = rho_outlet / 3
+
+    def boundary(f_pre_streaming, f_post_streaming, density, velocity):
+        boundary = np.zeros((lx, ly))
+        boundary[0, :] = np.ones(ly)
+        boundary[-1, :] = np.ones(ly)
+        f_post_streaming = periodic_with_pressure_variations(boundary.astype(np.bool), p_in, p_out)(
+            f_pre_streaming,
+            f_post_streaming,
+            density, velocity)
+
+        boundary_rigid_wall = np.zeros((lx, ly))
+        boundary_rigid_wall[:, 0] = np.ones(lx)
+        f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
+        boundary_rigid_wall = np.zeros((lx, ly))
+        boundary_rigid_wall[:, -1] = np.ones(lx)
+        f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
+
+        return f_post_streaming
+
+    density, velocity = density_1_velocity_0_initial((lx, ly))
+    f = equilibrium_distr_func(density, velocity)
+    velocities = [velocity]
+    for i in range(time_steps):
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+        velocities.append(velocity)
+
+    x_coord = lx // 2
+    viscosity = (1 / 3) * (1 / omega - 0.5)
+    dynamic_viscosity = viscosity * np.mean(density[x_coord, :])
+    h = ly
+    y = np.arange(0, ly + 1)
+    dp_dx = np.divide(p_out - p_in, lx)
+    uy = -np.reciprocal(2 * dynamic_viscosity) * dp_dx * y * (h - y)
+
+    for i, velocity in enumerate(velocities):
+        if i % int(time_steps / (number_of_visualizations-1)) == 0:
+            vx = velocity[..., 0]
+
+            for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
+                origin = [0, y_coord]
+                ax[row_index, col_index].quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1,
+                                                headwidth=3, width=0.0025)
+            ax[row_index, col_index].plot(vx[x_coord, :], np.arange(0, ly), label='Sim. Sol.', linewidth=1, c='blue',
+                                          linestyle=':')
+            ax[row_index, col_index].plot(uy, y - 0.5, label='Analyt. Sol.', c='red', linestyle='--')
+
+            if i == 0:
+                ax[row_index, col_index].set_title('Initial')
+            else:
+                ax[row_index, col_index].set_title('Step ' + str(i))
+
+            col_index += 1
+            if col_index == 5:
+                col_index = 0
+                row_index += 1
+
+    handles, labels = ax[1, 1].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='center right', borderaxespad=0.1)
+    fig.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9,
+                        wspace=0.75, hspace=1.5)
+    plt.subplots_adjust(right=0.77)
+
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    plt.savefig(r'../figures/poiseuille_flow/vel_vectors_evolution.svg', bbox_inches='tight')

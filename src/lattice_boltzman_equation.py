@@ -137,15 +137,14 @@ def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarr
     assert f.shape[0:2] == density.shape
     assert f.shape[0:2] == velocity.shape[0:2]
     assert 0 < omega < 2
-
     f_eq = equilibrium_distr_func(density, velocity)
 
-    f_pre = f + (f_eq - f) * omega
+    f_pre = (f + (f_eq - f) * omega)
 
     f_post = streaming(f_pre)
 
     if boundary is not None:
-        f_post = boundary(f_pre, f_post, density)
+        f_post = boundary(f_pre, f_post, density, velocity)
 
     density = compute_density(f_post)
     velocity = compute_velocity_field(density, f_post)
