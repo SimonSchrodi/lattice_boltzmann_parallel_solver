@@ -19,7 +19,7 @@ checkstyle:
 	pycodestyle --max-line-length=120 ${MKFILEDIR}src
 
 tex:
-	pdflatex *.tex
+	pdflatex documentation/*.tex
 
 tall: tex clean
 

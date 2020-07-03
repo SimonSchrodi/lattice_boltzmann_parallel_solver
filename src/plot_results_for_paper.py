@@ -4,8 +4,10 @@ from mpl_toolkits.mplot3d import Axes3D
 from typing import Tuple
 import numpy as np
 from scipy.optimize import curve_fit
+from scipy.stats import linregress
 from scipy.signal import argrelextrema
 from collections import OrderedDict
+import csv
 
 from src.initial_values import sinusoidal_density_x, sinusoidal_velocity_x, density_1_velocity_0_initial
 from src.lattice_boltzman_equation import equilibrium_distr_func, lattice_boltzman_step, lattice_boltzman_solver
@@ -27,14 +29,14 @@ def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
 
     fig, ax = plt.subplots(int(number_of_visualizations / 5), 5, sharex=True, sharey=True)
     ax[0, 0].plot(np.arange(0, lattice_grid_shape[0]), density[:, int(lattice_grid_shape[0] / 2)])
-    ax[0, 0].set_title('Initial')
+    ax[0, 0].set_title('initial')
     row_index, col_index = 0, 1
     for i in range(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
         if (i + 1) % int(time_steps / number_of_visualizations) == 0:
             ax[row_index, col_index].plot(np.arange(0, lattice_grid_shape[-1]),
                                           density[:, int(lattice_grid_shape[0] / 2)])
-            ax[row_index, col_index].set_title('Step ' + str(i))
+            ax[row_index, col_index].set_title('step ' + str(i))
             col_index += 1
             if col_index == 5:
                 col_index = 0
@@ -50,7 +52,7 @@ def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
 
 
 def plot_evolution_of_velocity(lattice_grid_shape: Tuple[int, int] = (50, 50),
-                               epsilon: float = 0.08,
+                               epsilon: float = 0.01,
                                omega: float = 1.0,
                                time_steps: int = 2000,
                                number_of_visualizations: int = 20):
@@ -63,14 +65,14 @@ def plot_evolution_of_velocity(lattice_grid_shape: Tuple[int, int] = (50, 50),
 
     fig, ax = plt.subplots(int(number_of_visualizations / 5), 5, sharex=True, sharey=True)
     ax[0, 0].plot(np.arange(0, lattice_grid_shape[-1]), velocity[int(lattice_grid_shape[0] / 2), :, 0])
-    ax[0, 0].set_title('Initial')
+    ax[0, 0].set_title('initial')
     row_index, col_index = 0, 1
     for i in range(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
         if (i + 1) % int(time_steps / number_of_visualizations) == 0:
             ax[row_index, col_index].plot(np.arange(0, lattice_grid_shape[-1]),
                                           velocity[int(lattice_grid_shape[0] / 2), :, 0])
-            ax[row_index, col_index].set_title('Step ' + str(i))
+            ax[row_index, col_index].set_title('step ' + str(i))
             col_index += 1
             if col_index == 5:
                 col_index = 0
@@ -87,9 +89,9 @@ def plot_evolution_of_velocity(lattice_grid_shape: Tuple[int, int] = (50, 50),
 
 def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 50),
                                      initial_p0: float = 0.5,
-                                     epsilon_p: float = 0.01,
+                                     epsilon_p: float = 0.08,
                                      epsilon_v: float = 0.08,
-                                     time_steps: int = 1000,
+                                     time_steps: int = 2000,
                                      omega_discretization: int = 50):
     fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
     omega = np.linspace(0.01, 1.99, omega_discretization)
@@ -139,14 +141,14 @@ def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 
             viscosity_true.append((1 / 3) * (1 / om - 0.5))
 
         viscosity_sim = np.array(viscosity_sim)
-        ax[i].plot(omega, viscosity_sim, label='Simulated')
+        ax[i].plot(omega, viscosity_sim, label='Simul. visc.')
         viscosity_true = np.array(viscosity_true)
-        ax[i].plot(omega, viscosity_true, label='Analytical')
+        ax[i].plot(omega, viscosity_true, label='Analyt. visc.')
         ax[i].legend()
         ax[i].set_yscale('log')
         ax[i].set_title("Sinusoidal Density" if i == 0 else "Sinusoidal Velocity")
-        ax[i].set_xlabel('Omega')
-        ax[i].set_ylabel(r'Viscosity $\nu$ [$\frac{m²}{s}$]')
+        ax[i].set_xlabel('omega')
+        ax[i].set_ylabel(r'viscosity $\nu$ [$\frac{m²}{s}$]')
 
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
@@ -157,7 +159,7 @@ def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 
 def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
                                 omega: float = 1.0,
                                 U: float = 0.01,
-                                time_steps: int = 800,
+                                time_steps: int = 4000,
                                 number_of_visualizations: int = 30):
     assert number_of_visualizations % 5 == 0
     assert U <= 1 / np.sqrt(3)
@@ -166,7 +168,7 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
     fig, ax = plt.subplots(int(number_of_visualizations / 5), 5, sharex=True, sharey=True)
     row_index, col_index = 0, 0
 
-    def boundary(f_pre_streaming, f_post_streaming, density, velocity):
+    def boundary(f_pre_streaming, f_post_streaming, density, velocity, f=None):
         boundary_rigid_wall = np.zeros((lx, ly))
         boundary_rigid_wall[:, -1] = np.ones(ly)
         f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
@@ -215,9 +217,9 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
                                       linestyle='-')
 
         if i == 0:
-            ax[row_index, col_index].set_title('Initial')
+            ax[row_index, col_index].set_title('initial')
         else:
-            ax[row_index, col_index].set_title('Step ' + str(i))
+            ax[row_index, col_index].set_title('step ' + str(i))
 
         col_index += 1
         if col_index == 5:
@@ -243,7 +245,7 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
     assert U <= 1 / np.sqrt(3)
     lx, ly = lattice_grid_shape
 
-    def boundary(f_pre_streaming, f_post_streaming, density, velocity):
+    def boundary(f_pre_streaming, f_post_streaming, density, velocity=None, f=None):
         boundary_rigid_wall = np.zeros(lattice_grid_shape)
         boundary_rigid_wall[:, -1] = np.ones(lx)
         f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
@@ -265,23 +267,53 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
     for vec, y_coord in zip(vx[int(lx / 2), :], np.arange(0, ly)):
         origin = [0, y_coord]
         plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
-    plt.plot(vx[int(lx / 2), :], np.arange(0, ly), label='Simul. Sol.', linewidth=1, c='blue', linestyle=':')
-    plt.plot(U * (ly - np.arange(0, ly + 1)) / ly, np.arange(0, ly + 1) - 0.5, label='Analyt. Sol.', c='red',
+    plt.plot(vx[int(lx / 2), :], np.arange(0, ly), label='Simul. sol.', linewidth=1, c='blue', linestyle=':')
+    plt.plot(U * (ly - np.arange(0, ly + 1)) / ly, np.arange(0, ly + 1) - 0.5, label='Analyt. sol.', c='red',
              linestyle='--')
     plt.plot(np.linspace(0, U, 100), np.ones_like(np.linspace(0, U, 100)) * (ly - 1) + 0.5,
-             label='Rigid Wall', linewidth=1.5, c='orange',
+             label='Rigid wall', linewidth=1.5, c='orange',
              linestyle='-.')
-    plt.plot(np.linspace(0, U, 100), np.zeros_like(np.linspace(0, U, 100)) - 0.5, label='Moving Wall',
+    plt.plot(np.linspace(0, U, 100), np.zeros_like(np.linspace(0, U, 100)) - 0.5, label='Moving wall',
              linewidth=1.5, c='green',
              linestyle='-')
-    plt.ylabel('y coordinate')
-    plt.xlabel(r'Velocity in y-direction $u$ [$\frac{m}{s}$]')
+    plt.ylabel('y position [lu]')
+    plt.xlabel(r'velocity in y-direction $u$ [$\frac{m}{s}$]')
     plt.legend()
 
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
     plt.savefig(r'../figures/couette_flow/vel_vectors.svg', bbox_inches='tight')
+
+    plt.close()
+
+    simulated = U * (ly - np.arange(0, ly + 1)) / ly
+    slope, intercept, rvalue, pvalue, stderr = linregress(np.arange(ly + 1), simulated)
+    with open('../figures/couette_flow/linregress.csv', 'w', newline='') as csvfile:
+        fieldnames = ['slope', 'intercept', 'rvalue', 'pvalue', 'stderr']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow(
+            {
+                'slope': slope,
+                'intercept': intercept,
+                'rvalue': rvalue,
+                'pvalue': pvalue,
+                'stderr': stderr
+            }
+        )
+    analytical_points = [intercept + slope * (x + 0.5) for x in np.arange(0, ly)]
+    simulated_points = vx[int(lx / 2), :]
+    relative_error = np.abs(analytical_points-simulated_points)/analytical_points
+    plt.plot(np.arange(0, ly), relative_error*100)
+
+    plt.xlabel(r'y position [lu]')
+    plt.ylabel(r'relative error [\%]')
+
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    plt.savefig(r'../figures/couette_flow/relative_error.svg', bbox_inches='tight')
 
 
 def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200, 30),
@@ -297,7 +329,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
     p_in = rho_inlet / 3
     p_out = rho_outlet / 3
 
-    def boundary(f_pre_streaming, f_post_streaming, density, velocity):
+    def boundary(f_pre_streaming, f_post_streaming, density, velocity, f=None):
         boundary = np.zeros((lx, ly))
         boundary[0, :] = np.ones(ly)
         boundary[-1, :] = np.ones(ly)
@@ -327,7 +359,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
     for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
         origin = [0, y_coord]
         plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
-    plt.plot(vx[x_coord, :], np.arange(0, ly), label='Sim. Sol.', linewidth=1, c='blue', linestyle=':')
+    plt.plot(vx[x_coord, :], np.arange(0, ly), label='Sim. sol.', linewidth=1, c='blue', linestyle=':')
 
     viscosity = (1 / 3) * (1 / omega - 0.5)
     dynamic_viscosity = viscosity * np.mean(density[x_coord, :])
@@ -335,21 +367,21 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
     y = np.arange(0, ly + 1)
     dp_dx = np.divide(p_out - p_in, lx)
     uy = -np.reciprocal(2 * dynamic_viscosity) * dp_dx * y * (h - y)
-    plt.plot(uy, y - 0.5, label='Analyt. Sol.', c='red',
+    plt.plot(uy, y - 0.5, label='Analyt. sol.', c='red',
              linestyle='--')
 
     plt.plot(np.linspace(0, np.amax(vx) * 1.05, 100), np.zeros_like(np.linspace(0, np.amax(vx) * 1.05, 100)) - 0.5,
-             label='Rigid Wall',
+             label='Rigid wall',
              linewidth=1.5, c='green',
              linestyle='-')
     plt.plot(np.linspace(0, np.amax(vx) * 1.05, 100),
              np.ones_like(np.linspace(0, np.amax(vx) * 1.05, 100)) * (ly - 1) + 0.5,
-             label='Rigid Wall',
+             label='Rigid wall',
              linewidth=1.5, c='green',
              linestyle='-')
 
-    plt.ylabel('y coordinate')
-    plt.xlabel(r'Velocity in y-direction $u$ [$\frac{m}{s}$]')
+    plt.ylabel('y position [lu]')
+    plt.xlabel(r'velocity in y-direction $u$ [$\frac{m}{s}$]')
     handles, labels = plt.gca().get_legend_handles_labels()
     by_label = OrderedDict(zip(labels, handles))
     plt.legend(by_label.values(), by_label.keys())
@@ -363,10 +395,10 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
     plt.close()
 
     plt.plot(np.arange(0, lx - 2), density[1:-1, centerline] / 3, label='Pressure along centerline')
-    plt.plot(np.arange(0, lx - 2), np.ones_like(np.arange(0, lx - 2)) * p_out, label='Outgoing Pressure')
+    plt.plot(np.arange(0, lx - 2), np.ones_like(np.arange(0, lx - 2)) * p_out, label='Outgoing pressure')
     plt.plot(np.arange(0, lx - 2), np.ones_like(np.arange(0, lx - 2)) * p_in,
-             label='Ingoing Pressure')
-    plt.xlabel('x coordinate')
+             label='Ingoing pressure')
+    plt.xlabel('x position [lu]')
     plt.ylabel(r'pressure along centerline $p$ [$Pa$]')
     plt.legend()
 
@@ -374,6 +406,33 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
     plt.rc('font', family='serif')
 
     plt.savefig(r'../figures/poiseuille_flow/density_along_centerline.svg', bbox_inches='tight')
+
+    plt.close()
+
+    popt, pcov = curve_fit(lambda y, a, b, c: a*(y**2)+b*y+c, np.array(y).squeeze(), uy)
+    with open('../figures/poiseuille_flow/curve_fit.csv', 'w', newline='') as csvfile:
+        fieldnames = ['popt', 'pcov']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow(
+            {
+                'popt': popt,
+                'pcov': pcov
+            }
+        )
+    a, b, c = popt
+    analytical_points = [a*((x + 0.5)**2)+b*(x+0.5)+c for x in np.arange(0, ly)]
+    simulated_points = vx[int(lx / 2), :]
+    relative_error = np.abs(analytical_points - simulated_points) / analytical_points
+    plt.plot(np.arange(0, ly), relative_error * 100)
+
+    plt.xlabel(r'y position [lu]')
+    plt.ylabel(r'relative error [\%]')
+
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    plt.savefig(r'../figures/poiseuille_flow/relative_error.svg', bbox_inches='tight')
 
 
 def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 30),
@@ -429,21 +488,21 @@ def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 3
     uy = -np.reciprocal(2 * dynamic_viscosity) * dp_dx * y * (h - y)
 
     for i, velocity in enumerate(velocities):
-        if i % int(time_steps / (number_of_visualizations-1)) == 0:
+        if i % int(time_steps / (number_of_visualizations - 1)) == 0:
             vx = velocity[..., 0]
 
             for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
                 origin = [0, y_coord]
                 ax[row_index, col_index].quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1,
                                                 headwidth=3, width=0.0025)
-            ax[row_index, col_index].plot(vx[x_coord, :], np.arange(0, ly), label='Sim. Sol.', linewidth=1, c='blue',
+            ax[row_index, col_index].plot(vx[x_coord, :], np.arange(0, ly), label='Sim. sol.', linewidth=1, c='blue',
                                           linestyle=':')
-            ax[row_index, col_index].plot(uy, y - 0.5, label='Analyt. Sol.', c='red', linestyle='--')
+            ax[row_index, col_index].plot(uy, y - 0.5, label='Analyt. sol.', c='red', linestyle='--')
 
             if i == 0:
-                ax[row_index, col_index].set_title('Initial')
+                ax[row_index, col_index].set_title('initial')
             else:
-                ax[row_index, col_index].set_title('Step ' + str(i))
+                ax[row_index, col_index].set_title('step ' + str(i))
 
             col_index += 1
             if col_index == 5:

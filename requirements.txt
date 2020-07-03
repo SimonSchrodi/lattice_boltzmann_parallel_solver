@@ -2,3 +2,4 @@ pycodestyle
 numpy
 scipy
 matplotlib
+pillow

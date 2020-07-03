@@ -81,3 +81,10 @@ def density_1_velocity_0_initial(lattice_grid_shape: Tuple[int, int]):
 
     """
     return np.ones(lattice_grid_shape), np.zeros(lattice_grid_shape + (2,))
+
+
+def density_1_velocity_x_u0_velocity_y_0_initial(lattice_grid_shape: Tuple[int, int], u0: float):
+    u = np.empty(lattice_grid_shape + (2,))
+    u[..., 0] = u0
+    u[..., 1] = 0
+    return np.ones(lattice_grid_shape), u

@@ -1,16 +1,18 @@
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
+from scipy.fft import fft
 
 from src.lattice_boltzman_equation import compute_density, compute_velocity_field, streaming, equilibrium_distr_func, \
-    lattice_boltzman_step
+    lattice_boltzman_step, reynolds_number, strouhal_number
 from src.visualizations import visualize_velocity_quiver, visualize_velocity_streamplot, \
     visualize_density_contour_plot, visualize_density_surface_plot
 
 from src.initial_values import milestone_2_test_1_initial_val, milestone_2_test_2_initial_val, sinusoidal_density_x, \
-    sinusoidal_velocity_x, density_1_velocity_0_initial
+    sinusoidal_velocity_x, density_1_velocity_0_initial, density_1_velocity_x_u0_velocity_y_0_initial
 
-from src.boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_variations
+from src.boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_variations, inlet, outlet, \
+    rigid_object
 
 
 def milestone_1():
@@ -179,7 +181,7 @@ def milestone_5():
     time_steps = 5000
     delta_p = 0.001111
     rho_0 = 1
-    delta_rho = delta_p*3
+    delta_rho = delta_p * 3
     rho_inlet = rho_0 + delta_rho
     rho_outlet = rho_0
     p_in = rho_inlet / 3
@@ -205,15 +207,9 @@ def milestone_5():
 
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
-    vels = []
     for i in range(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
         print(i, np.sum(density))
-        vel_min = np.amin(velocity)
-        vel_max = np.amax(velocity)
-        vels.append(
-            np.abs(vel_min) if np.abs(vel_min) > np.abs(vel_max) else np.abs(vel_max)
-        )
 
     vx = velocity[..., 0]
     print(np.amax(velocity))
@@ -248,5 +244,68 @@ def milestone_5():
     plt.legend()
     plt.show()
 
-    print(np.amax(density[1:-1, centerline])/3, p_in)
-    print(np.amin(density[1:-1, centerline])/3, p_out)
+    print(np.amax(density[1:-1, centerline]) / 3, p_in)
+    print(np.amin(density[1:-1, centerline]) / 3, p_out)
+
+
+def milestone_6():
+    lx, ly = 420, 180
+    d = 40
+    u0 = 0.1
+    density_in = 1.0
+    kinematic_viscosity = 0.04
+    omega = np.reciprocal(3 * kinematic_viscosity + 0.5)
+    time_steps = 100000
+
+    p_coords = [3 * lx // 4, ly // 2]
+
+    def boundary(f_pre_streaming, f_post_streaming, density=None, velocity=None, f_previous=None):
+        f_post_streaming = inlet((lx, ly), density_in, u0)(f_post_streaming)
+        f_post_streaming = outlet()(f_previous, f_post_streaming)
+
+        plate_boundary = np.zeros((lx, ly))
+        plate_boundary[lx // 4, ly // 2 - d // 2:ly // 2 + d // 2] = 1
+        f_post_streaming = rigid_object(plate_boundary.astype(np.bool))(f_pre_streaming, f_post_streaming)
+        return f_post_streaming
+
+    density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((lx, ly), u0)
+    f = equilibrium_distr_func(density, velocity)
+    vel_at_p = [np.linalg.norm(velocity[p_coords[0], p_coords[1], ...])]
+    for i in range(time_steps):
+        print(i, np.sum(compute_density(f)))
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+        vel_at_p.append(np.linalg.norm(velocity[p_coords[0], p_coords[1], ...]))
+        if i % 100 == 0:
+            absolute_velocity = np.linalg.norm(velocity, axis=-1)
+            normalized_abs_velocity = absolute_velocity / np.amax(absolute_velocity)
+            from PIL import Image
+            from matplotlib import cm
+            img = Image.fromarray(np.uint8(cm.viridis(normalized_abs_velocity.T) * 255))
+            img.save(r'../figures/von_karman_vortex_shedding/all_png/' + str(i) + '.png')
+            # plt.imshow(absolute_velocity.T)
+            # plt.plot(lx // 4 * np.ones(ly)[ly // 2 - d // 2:ly // 2 + d // 2] + 0.5,
+            #         np.arange(0, ly)[ly // 2 - d // 2:ly // 2 + d // 2], c='red')
+            # plt.colorbar()
+            # plt.show()
+
+    np.save(r'../figures/von_karman_vortex_shedding/vel_at_p.py', vel_at_p)
+    np.save(r'../figures/von_karman_vortex_shedding/velocity.py', velocity)
+    np.save(r'../figures/von_karman_vortex_shedding/density.py', density)
+    absolute_velocity = np.linalg.norm(velocity, axis=-1)
+    normalized_abs_velocity = absolute_velocity / np.amax(absolute_velocity)
+    plt.imshow(normalized_abs_velocity.T)
+    plt.colorbar()
+    plt.show()
+
+    plt.plot(np.arange(0, time_steps + 1), vel_at_p, linewidth=0.3)
+    plt.show()
+
+    frequencies = fft(vel_at_p)
+    plt.plot(np.arange(0, len(vel_at_p)), frequencies)
+    plt.show()
+
+    vortex_frequency = np.argmax(frequencies)
+    strouhal = strouhal_number(vortex_frequency, ly, np.mean(velocity))
+    print(strouhal)
+    reynolds = reynolds_number(ly, np.mean(velocity), kinematic_viscosity)
+    print(reynolds)

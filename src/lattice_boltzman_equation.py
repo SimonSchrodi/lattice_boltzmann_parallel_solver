@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Callable
 
 
 def get_velocity_sets() -> np.ndarray:
@@ -28,7 +28,8 @@ def get_velocity_sets() -> np.ndarray:
 def vel_to_opp_vel_mapping() -> np.ndarray:
     """
     Opposite direction
-    Returns: array with opposite directions of D2Q9
+    Returns:
+        array with opposite directions of D2Q9
 
     """
     return np.array(
@@ -48,9 +49,48 @@ def get_w_i() -> np.ndarray:
     )
 
 
+def reynolds_number(L, u, v) -> float:
+    """
+    Compute the Reynolds number
+
+    Args:
+        L: characteristic length
+        u: flow velocity
+        v: kinematic viscosity
+
+    Returns:
+        Reynolds number
+
+    """
+    return np.divide(
+        L * u,
+        v
+    )
+
+
+def strouhal_number(f, L, u) -> float:
+    """
+    Computes the Strouhal number
+
+    Args:
+        f: vortex frequency
+        L: characteristic length
+        u: flow velocity
+
+    Returns:
+        Strouhal number
+
+    """
+    return np.divide(
+        f * L,
+        u
+    )
+
+
 def compute_density(prob_densitiy_func: np.ndarray) -> np.ndarray:
     """
     Compute local density
+
     Args:
         prob_densitiy_func: probability density function f(r,v,t)
 
@@ -65,6 +105,7 @@ def compute_density(prob_densitiy_func: np.ndarray) -> np.ndarray:
 def compute_velocity_field(density_func: np.ndarray, prob_density_func: np.ndarray) -> np.ndarray:
     """
     Computes the velocity field
+
     Args:
         density_func: local density rho(x)
         prob_density_func: probability density function f(r,v,t)
@@ -96,6 +137,7 @@ def compute_velocity_field(density_func: np.ndarray, prob_density_func: np.ndarr
 def streaming(prob_density_func: np.ndarray) -> np.ndarray:
     """
     Implements the streaming operator
+
     Args:
         prob_density_func: probability density function f(r,v,t)
 
@@ -115,6 +157,17 @@ def streaming(prob_density_func: np.ndarray) -> np.ndarray:
 
 
 def equilibrium_distr_func(density_func: np.ndarray, velocity_field: np.ndarray) -> np.ndarray:
+    """
+    Computes the equilibrium distribution function
+
+    Args:
+        density_func: local density rho(x)
+        velocity_field: velocity u(x)
+
+    Returns:
+        equilibrium distribution function
+
+    """
     assert density_func.shape == velocity_field.shape[:-1]
 
     w_i = get_w_i()
@@ -132,8 +185,24 @@ def equilibrium_distr_func(density_func: np.ndarray, velocity_field: np.ndarray)
     return f_eq
 
 
-def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarray, omega: float, boundary=None) \
-        -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarray, omega: float,
+                          boundary: Callable[
+                              [np.ndarray, np.ndarray, np.ndarray, np.ndarray], np.ndarray] = None) -> \
+        Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Carries out a lattice boltzman step
+
+    Args:
+        f: probability density function f(r,v,t)
+        density: local density rho(x)
+        velocity: velocity u(x)
+        omega:
+        boundary:
+
+    Returns:
+        new probability density function, new density function, new velocity function
+
+    """
     assert f.shape[0:2] == density.shape
     assert f.shape[0:2] == velocity.shape[0:2]
     assert 0 < omega < 2
@@ -144,7 +213,7 @@ def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarr
     f_post = streaming(f_pre)
 
     if boundary is not None:
-        f_post = boundary(f_pre, f_post, density, velocity)
+        f_post = boundary(f_pre, f_post, density, velocity, f)
 
     density = compute_density(f_post)
     velocity = compute_velocity_field(density, f_post)
@@ -152,7 +221,9 @@ def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarr
     return f_post, density, velocity
 
 
-def lattice_boltzman_solver(density: np.ndarray, velocity: np.ndarray, omega: float = 0.5, boundary=None,
+def lattice_boltzman_solver(density: np.ndarray, velocity: np.ndarray, omega: float = 0.5,
+                            boundary: Callable[
+                                [np.ndarray, np.ndarray, np.ndarray, np.ndarray], np.ndarray] = None,
                             time_steps: int = 1000) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     assert 0 < omega < 2
 
