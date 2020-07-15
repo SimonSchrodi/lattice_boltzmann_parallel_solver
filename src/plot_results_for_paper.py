@@ -363,7 +363,8 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
         # for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
         #     origin = [0, y_coord]
         #     plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
-        plt.plot(vx[x_coord, :], np.arange(0, ly), label='Sim. sol. channel '+str(x_coord), linewidth=1, c=c, linestyle=ls)
+        plt.plot(vx[x_coord, :], np.arange(0, ly), label='Sim. sol. channel ' + str(x_coord), linewidth=1, c=c,
+                 linestyle=ls)
         areas.append(
             np.trapz(vx[x_coord, :], np.arange(0, ly))
         )

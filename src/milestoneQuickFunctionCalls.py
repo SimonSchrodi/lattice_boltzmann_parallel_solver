@@ -273,32 +273,31 @@ def milestone_6():
         f_post_streaming = rigid_object(plate_boundary.astype(np.bool))(f_pre_streaming, f_post_streaming)
         return f_post_streaming
 
-    if False:
-        density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((lx, ly), u0)
-        f = equilibrium_distr_func(density, velocity)
-        vel_at_p = [np.linalg.norm(velocity[p_coords[0], p_coords[1], ...])]
-        for i in range(time_steps):
-            print(i, np.sum(compute_density(f)))
-            f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
-            vel_at_p.append(np.linalg.norm(velocity[p_coords[0], p_coords[1], ...]))
-            if i % 100 == 0:
-                absolute_velocity = np.linalg.norm(velocity, axis=-1)
-                normalized_abs_velocity = absolute_velocity / np.amax(absolute_velocity)
-                from PIL import Image
-                from matplotlib import cm
-                img = Image.fromarray(np.uint8(cm.viridis(normalized_abs_velocity.T) * 255))
-                img.save(r'../figures/von_karman_vortex_shedding/all_png/' + str(i) + '.png')
-                # plt.imshow(absolute_velocity.T)
-                # plt.plot(lx // 4 * np.ones(ly)[ly // 2 - d // 2:ly // 2 + d // 2] + 0.5,
-                #         np.arange(0, ly)[ly // 2 - d // 2:ly // 2 + d // 2], c='red')
-                # plt.colorbar()
-                # plt.show()
+    density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((lx, ly), u0)
+    f = equilibrium_distr_func(density, velocity)
+    vel_at_p = [np.linalg.norm(velocity[p_coords[0], p_coords[1], ...])]
+    for i in range(time_steps):
+        print(i, np.sum(compute_density(f)))
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+        vel_at_p.append(np.linalg.norm(velocity[p_coords[0], p_coords[1], ...]))
+        if i % 100 == 0:
+            absolute_velocity = np.linalg.norm(velocity, axis=-1)
+            normalized_abs_velocity = absolute_velocity / np.amax(absolute_velocity)
+            from PIL import Image
+            from matplotlib import cm
+            img = Image.fromarray(np.uint8(cm.viridis(normalized_abs_velocity.T) * 255))
+            img.save(r'../figures/von_karman_vortex_shedding/all_png/' + str(i) + '.png')
+            # plt.imshow(absolute_velocity.T)
+            # plt.plot(lx // 4 * np.ones(ly)[ly // 2 - d // 2:ly // 2 + d // 2] + 0.5,
+            #         np.arange(0, ly)[ly // 2 - d // 2:ly // 2 + d // 2], c='red')
+            # plt.colorbar()
+            # plt.show()
 
-    #np.save(r'../figures/von_karman_vortex_shedding/vel_at_p.py', vel_at_p)
+    np.save(r'../figures/von_karman_vortex_shedding/vel_at_p.py', vel_at_p)
     vel_at_p = np.load(r'../figures/von_karman_vortex_shedding/vel_at_p.py.npy')
-    #np.save(r'../figures/von_karman_vortex_shedding/velocity.py', velocity)
+    np.save(r'../figures/von_karman_vortex_shedding/velocity.py', velocity)
     velocity = np.load(r'../figures/von_karman_vortex_shedding/velocity.py.npy')
-    #np.save(r'../figures/von_karman_vortex_shedding/density.py', density)
+    np.save(r'../figures/von_karman_vortex_shedding/density.py', density)
     density = np.load(r'../figures/von_karman_vortex_shedding/density.py.npy')
     absolute_velocity = np.linalg.norm(velocity, axis=-1)
     normalized_abs_velocity = absolute_velocity / np.amax(absolute_velocity)
