@@ -1,4 +1,11 @@
 language: python
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - libopenmpi-dev
+      - openmpi-bin
 python:
   - "3.5"
   - "3.6"
