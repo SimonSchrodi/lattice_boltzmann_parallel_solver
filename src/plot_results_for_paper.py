@@ -277,7 +277,7 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
              linewidth=1.5, c='green',
              linestyle='-')
     plt.ylabel('y position [lu]')
-    plt.xlabel(r'velocity in y-direction $u$ [$\frac{m}{s}$]')
+    plt.xlabel(r'velocity in y-direction $u$ [$\frac{lu}{s}$]')
     plt.legend()
 
     plt.rc('text', usetex=True)
@@ -316,16 +316,16 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
     plt.savefig(r'../figures/couette_flow/relative_error.svg', bbox_inches='tight')
 
 
-def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200, 30),
+def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200, 60),
                                      omega: float = 1.5,
-                                     delta_p: float = 0.001111,
-                                     time_steps: int = 5000):
+                                     delta_p: float = 0.001,
+                                     time_steps: int = 20000):
     lx, ly = lattice_grid_shape
 
     rho_0 = 1
     delta_rho = delta_p * 3
-    rho_inlet = rho_0 + delta_rho
-    rho_outlet = rho_0
+    rho_inlet = rho_0 + (delta_rho/2)
+    rho_outlet = rho_0 - (delta_rho/2)
     p_in = rho_inlet / 3
     p_out = rho_outlet / 3
 
@@ -353,46 +353,66 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
 
     vx = velocity[..., 0]
-    x_coord = lx // 2
+    x_coords = [1, lx // 2]
     centerline = ly // 2
 
-    for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
-        origin = [0, y_coord]
-        plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
-    plt.plot(vx[x_coord, :], np.arange(0, ly), label='Sim. sol.', linewidth=1, c='blue', linestyle=':')
+    areas = []
+    colors = ['cyan', 'blue']
+    linestyle = [':', '-.']
+    for c, ls, x_coord in zip(colors, linestyle, x_coords):
+        # for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
+        #     origin = [0, y_coord]
+        #     plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
+        plt.plot(vx[x_coord, :], np.arange(0, ly), label='Sim. sol. channel '+str(x_coord), linewidth=1, c=c, linestyle=ls)
+        areas.append(
+            np.trapz(vx[x_coord, :], np.arange(0, ly))
+        )
+        viscosity = (1 / 3) * (1 / omega - 0.5)
+        dynamic_viscosity = viscosity * np.mean(density[x_coord, :])
+        h = ly
+        y = np.arange(0, ly + 1)
+        dp_dx = np.divide(p_out - p_in, lx)
+        uy = -np.reciprocal(2 * dynamic_viscosity) * dp_dx * y * (h - y)
+        plt.plot(uy, y - 0.5, label='Analyt. sol.', c='red',
+                 linestyle='--')
 
-    viscosity = (1 / 3) * (1 / omega - 0.5)
-    dynamic_viscosity = viscosity * np.mean(density[x_coord, :])
-    h = ly
-    y = np.arange(0, ly + 1)
-    dp_dx = np.divide(p_out - p_in, lx)
-    uy = -np.reciprocal(2 * dynamic_viscosity) * dp_dx * y * (h - y)
-    plt.plot(uy, y - 0.5, label='Analyt. sol.', c='red',
-             linestyle='--')
+        plt.plot(np.linspace(0, np.amax(vx) * 1.05, 100), np.zeros_like(np.linspace(0, np.amax(vx) * 1.05, 100)) - 0.5,
+                 label='Rigid wall',
+                 linewidth=1.5, c='green',
+                 linestyle='-')
+        plt.plot(np.linspace(0, np.amax(vx) * 1.05, 100),
+                 np.ones_like(np.linspace(0, np.amax(vx) * 1.05, 100)) * (ly - 1) + 0.5,
+                 label='Rigid wall',
+                 linewidth=1.5, c='green',
+                 linestyle='-')
 
-    plt.plot(np.linspace(0, np.amax(vx) * 1.05, 100), np.zeros_like(np.linspace(0, np.amax(vx) * 1.05, 100)) - 0.5,
-             label='Rigid wall',
-             linewidth=1.5, c='green',
-             linestyle='-')
-    plt.plot(np.linspace(0, np.amax(vx) * 1.05, 100),
-             np.ones_like(np.linspace(0, np.amax(vx) * 1.05, 100)) * (ly - 1) + 0.5,
-             label='Rigid wall',
-             linewidth=1.5, c='green',
-             linestyle='-')
+        plt.ylabel('y position [lu]')
+        plt.xlabel(r'velocity in y-direction $u$ [$\frac{lu}{s}$]')
+        handles, labels = plt.gca().get_legend_handles_labels()
+        by_label = OrderedDict(zip(labels, handles))
+        plt.legend(by_label.values(), by_label.keys())
+        plt.legend(by_label.values(), by_label.keys(), loc='lower right')
 
-    plt.ylabel('y position [lu]')
-    plt.xlabel(r'velocity in y-direction $u$ [$\frac{m}{s}$]')
-    handles, labels = plt.gca().get_legend_handles_labels()
-    by_label = OrderedDict(zip(labels, handles))
-    plt.legend(by_label.values(), by_label.keys())
-    plt.legend(by_label.values(), by_label.keys(), loc='lower right')
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
 
-    plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
-
-    plt.savefig(r'../figures/poiseuille_flow/vel_vectors.svg', bbox_inches='tight')
+        plt.savefig(r'../figures/poiseuille_flow/vel_vectors.svg', bbox_inches='tight')
 
     plt.close()
+
+    areas.append(areas[0]/areas[1])
+    areas = np.array(areas)
+    with open('../figures/poiseuille_flow/areas.csv', 'w', newline='') as csvfile:
+        fieldnames = ['inlet', 'middle', 'relative_difference']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow(
+            {
+                'inlet': areas[0],
+                'middle': areas[1],
+                'relative_difference': areas[2]
+            }
+        )
 
     plt.plot(np.arange(0, lx - 2), density[1:-1, centerline] / 3, label='Pressure along centerline')
     plt.plot(np.arange(0, lx - 2), np.ones_like(np.arange(0, lx - 2)) * p_out, label='Outgoing pressure')

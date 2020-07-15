@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit, least_squares
 import matplotlib.pyplot as plt
-from scipy.fft import fft, fftfreq, fftshift
 
 from mpi4py import MPI
 
@@ -274,31 +273,32 @@ def milestone_6():
         f_post_streaming = rigid_object(plate_boundary.astype(np.bool))(f_pre_streaming, f_post_streaming)
         return f_post_streaming
 
-    density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((lx, ly), u0)
-    f = equilibrium_distr_func(density, velocity)
-    vel_at_p = [np.linalg.norm(velocity[p_coords[0], p_coords[1], ...])]
-    for i in range(time_steps):
-        print(i, np.sum(compute_density(f)))
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
-        vel_at_p.append(np.linalg.norm(velocity[p_coords[0], p_coords[1], ...]))
-        if i % 100 == 0:
-            absolute_velocity = np.linalg.norm(velocity, axis=-1)
-            normalized_abs_velocity = absolute_velocity / np.amax(absolute_velocity)
-            from PIL import Image
-            from matplotlib import cm
-            img = Image.fromarray(np.uint8(cm.viridis(normalized_abs_velocity.T) * 255))
-            img.save(r'../figures/von_karman_vortex_shedding/all_png/' + str(i) + '.png')
-            # plt.imshow(absolute_velocity.T)
-            # plt.plot(lx // 4 * np.ones(ly)[ly // 2 - d // 2:ly // 2 + d // 2] + 0.5,
-            #         np.arange(0, ly)[ly // 2 - d // 2:ly // 2 + d // 2], c='red')
-            # plt.colorbar()
-            # plt.show()
+    if False:
+        density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((lx, ly), u0)
+        f = equilibrium_distr_func(density, velocity)
+        vel_at_p = [np.linalg.norm(velocity[p_coords[0], p_coords[1], ...])]
+        for i in range(time_steps):
+            print(i, np.sum(compute_density(f)))
+            f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+            vel_at_p.append(np.linalg.norm(velocity[p_coords[0], p_coords[1], ...]))
+            if i % 100 == 0:
+                absolute_velocity = np.linalg.norm(velocity, axis=-1)
+                normalized_abs_velocity = absolute_velocity / np.amax(absolute_velocity)
+                from PIL import Image
+                from matplotlib import cm
+                img = Image.fromarray(np.uint8(cm.viridis(normalized_abs_velocity.T) * 255))
+                img.save(r'../figures/von_karman_vortex_shedding/all_png/' + str(i) + '.png')
+                # plt.imshow(absolute_velocity.T)
+                # plt.plot(lx // 4 * np.ones(ly)[ly // 2 - d // 2:ly // 2 + d // 2] + 0.5,
+                #         np.arange(0, ly)[ly // 2 - d // 2:ly // 2 + d // 2], c='red')
+                # plt.colorbar()
+                # plt.show()
 
-    np.save(r'../figures/von_karman_vortex_shedding/vel_at_p.py', vel_at_p)
+    #np.save(r'../figures/von_karman_vortex_shedding/vel_at_p.py', vel_at_p)
     vel_at_p = np.load(r'../figures/von_karman_vortex_shedding/vel_at_p.py.npy')
-    np.save(r'../figures/von_karman_vortex_shedding/velocity.py', velocity)
+    #np.save(r'../figures/von_karman_vortex_shedding/velocity.py', velocity)
     velocity = np.load(r'../figures/von_karman_vortex_shedding/velocity.py.npy')
-    np.save(r'../figures/von_karman_vortex_shedding/density.py', density)
+    #np.save(r'../figures/von_karman_vortex_shedding/density.py', density)
     density = np.load(r'../figures/von_karman_vortex_shedding/density.py.npy')
     absolute_velocity = np.linalg.norm(velocity, axis=-1)
     normalized_abs_velocity = absolute_velocity / np.amax(absolute_velocity)
@@ -309,32 +309,19 @@ def milestone_6():
     plt.plot(np.arange(0, time_steps + 1), vel_at_p, linewidth=0.3)
     plt.show()
 
-    frequencies = []
-    vel_at_p -= np.mean(vel_at_p)
-    yf = fft(vel_at_p)
-    xf = fftfreq(len(vel_at_p), 1)
-    # xf = fftshift(xf)
-    frequencies.append(np.abs(yf))
-    plt.plot(xf, np.abs(yf))
+    vel_at_p = vel_at_p[70000:]
+
+    plt.plot(vel_at_p)
     plt.show()
 
-    for i in range(2, 10):
-        vels = vel_at_p[len(vel_at_p) - int(len(vel_at_p) / i):]
-        plt.plot(np.arange(0, int(len(vel_at_p) / i)), vels, linewidth=0.3)
-        plt.show()
-        yf = fft(vels)
-        yf = np.abs(yf)
-        xf = fftfreq(len(vels), 1)
-        max_freq = xf[np.argmax(yf)]
-        # xf = fftshift(xf)
-        frequencies.append(np.abs(yf))
-        plt.plot(xf, np.abs(yf))
-        plt.show()
-        print(xf[np.argmax(frequencies[-1])], xf[np.argmax(frequencies[-2])])
-        if np.argmax(frequencies[-1]) != 0 and np.argmax(frequencies[-1]) == np.argmax(frequencies[-2]):
-            break
+    yf = np.fft.fft(vel_at_p)
+    freq = np.fft.fftfreq(len(vel_at_p), 1)
 
-    vortex_frequency = np.argmax(frequencies)
+    plt.plot(freq, np.abs(yf.imag))
+    plt.show()
+
+    vortex_frequency = np.abs(freq[np.argmax(yf.imag)])
+    print(vortex_frequency)
     strouhal = strouhal_number(vortex_frequency, d, u0)
     print(strouhal)
     reynolds = reynolds_number(d, u0, kinematic_viscosity)
@@ -362,6 +349,7 @@ def milestone_7():
 
     n_local_x = lx // size
     n_local_y = ly // size
+    # TODO rechten & oberen finden
     if rank == size - 1:
         n_local_x = lx - n_local_x * (size - 1)
         n_local_y = ly - n_local_y * (size - 1)
@@ -369,11 +357,11 @@ def milestone_7():
     left_dst, right_dst = cartesian3d.Shift(direction=0, disp=1)
     bottom_dst, top_dst = cartesian3d.Shift(direction=1, disp=1)
 
-    def boundary(coord3d, n_local_x, n_local_y):
-        max_coord_x = np.amax(coord3d[:, 0])
+    def boundary(coord2d, n_local_x, n_local_y):
+        max_coord_x = np.amax(coord2d[:, 0])
 
         def bc(f_pre_streaming, f_post_streaming, density=None, velocity=None, f_previous=None):
-            if coord3d[0] == 0:
+            if coord2d[0] == 0:
                 f_post_streaming[1:-1, 1:-1, :] = inlet((n_local_x, n_local_y), density_in, u0)(
                     f_post_streaming[1:-1, 1:-1, :])
 
@@ -411,32 +399,19 @@ def milestone_7():
     plt.plot(np.arange(0, time_steps + 1), vel_at_p, linewidth=0.3)
     plt.show()
 
-    frequencies = []
-    vel_at_p -= np.mean(vel_at_p)
-    yf = fft(vel_at_p)
-    xf = fftfreq(len(vel_at_p), 1)
-    # xf = fftshift(xf)
-    frequencies.append(np.abs(yf))
-    plt.plot(xf, np.abs(yf))
+    vel_at_p = vel_at_p[70000:]
+
+    plt.plot(vel_at_p)
     plt.show()
 
-    for i in range(2, 10):
-        vels = vel_at_p[len(vel_at_p) - int(len(vel_at_p) / i):]
-        plt.plot(np.arange(0, int(len(vel_at_p) / i)), vels, linewidth=0.3)
-        plt.show()
-        yf = fft(vels)
-        yf = np.abs(yf)
-        xf = fftfreq(len(vels), 1)
-        max_freq = xf[np.argmax(yf)]
-        # xf = fftshift(xf)
-        frequencies.append(np.abs(yf))
-        plt.plot(xf, np.abs(yf))
-        plt.show()
-        print(xf[np.argmax(frequencies[-1])], xf[np.argmax(frequencies[-2])])
-        if np.argmax(frequencies[-1]) != 0 and np.argmax(frequencies[-1]) == np.argmax(frequencies[-2]):
-            break
+    yf = np.fft.fft(vel_at_p)
+    freq = np.fft.fftfreq(len(vel_at_p), 1)
 
-    vortex_frequency = np.argmax(frequencies)
+    plt.plot(freq, np.abs(yf.imag))
+    plt.show()
+
+    vortex_frequency = np.abs(freq[np.argmax(yf.imag)])
+    print(vortex_frequency)
     strouhal = strouhal_number(vortex_frequency, d, u0)
     print(strouhal)
     reynolds = reynolds_number(d, u0, kinematic_viscosity)
