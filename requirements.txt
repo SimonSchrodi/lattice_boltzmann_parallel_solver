@@ -3,3 +3,4 @@ numpy
 scipy
 matplotlib
 pillow
+mpi4py

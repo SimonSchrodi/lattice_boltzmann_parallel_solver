@@ -24,23 +24,19 @@ def get_corner_indices(boundary: np.ndarray) -> np.ndarray:
 
     indices = np.argwhere(boundary)
     upper_left_corner = (np.amin(indices[:, 0]), np.amax(indices[:, 1]))
-    above_upper_left_corner = tuple(map(operator.add, upper_left_corner, (0, 1)))
+    # above_upper_left_corner = tuple(map(operator.add, upper_left_corner, (0, 1)))
     upper_right_corner = (np.amax(indices[:, 0]) + 1, np.amax(indices[:, 1]))
-    above_upper_right_corner = tuple(map(operator.add, upper_right_corner, (0, 1)))
+    # above_upper_right_corner = tuple(map(operator.add, upper_right_corner, (0, 1)))
     lower_left_corner = (np.amin(indices[:, 0]), np.amin(indices[:, 1]))
-    below_lower_left_corner = tuple(map(operator.add, lower_left_corner, (0, -1)))
+    # below_lower_left_corner = tuple(map(operator.add, lower_left_corner, (0, -1)))
     lower_right_corner = (np.amax(indices[:, 0]) + 1, np.amin(indices[:, 1]))
-    below_lower_right_corner = tuple(map(operator.add, lower_right_corner, (0, -1)))
+    # below_lower_right_corner = tuple(map(operator.add, lower_right_corner, (0, -1)))
     return np.array(
         [
             (upper_left_corner, (1, 8)),
-            (above_upper_left_corner, 8),
             (lower_left_corner, (1, 5)),
-            (below_lower_left_corner, 5),
             (upper_right_corner, (3, 7)),
-            (above_upper_right_corner, 7),
-            (lower_right_corner, (3, 6)),
-            (below_lower_right_corner, 6)
+            (lower_right_corner, (3, 6))
         ]
     )
 

@@ -186,9 +186,9 @@ def equilibrium_distr_func(density_func: np.ndarray, velocity_field: np.ndarray)
 
 
 def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarray, omega: float,
-                          boundary: Callable[
-                              [np.ndarray, np.ndarray, np.ndarray, np.ndarray], np.ndarray] = None) -> \
-        Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                          boundary: Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray], np.ndarray] = None,
+                          parallel_communication: Callable[[np.ndarray], np.ndarray] = None) \
+        -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Carries out a lattice boltzman step
 
@@ -209,6 +209,9 @@ def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarr
     f_eq = equilibrium_distr_func(density, velocity)
 
     f_pre = (f + (f_eq - f) * omega)
+
+    if parallel_communication is not None:
+        parallel_communication(f_pre)
 
     f_post = streaming(f_pre)
 

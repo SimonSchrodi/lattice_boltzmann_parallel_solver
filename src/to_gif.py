@@ -23,4 +23,4 @@ for img, _ in ordered_img_dict.items():
 frames[0].save('../figures/von_karman_vortex_shedding/png_to_gif.gif', format='GIF',
                append_images=frames[1:],
                save_all=True,
-               duration=10, loop=0)
+               duration=1, loop=0)

@@ -1,7 +1,9 @@
 import numpy as np
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, least_squares
 import matplotlib.pyplot as plt
-from scipy.fft import fft
+from scipy.fft import fft, fftfreq, fftshift
+
+from mpi4py import MPI
 
 from src.lattice_boltzman_equation import compute_density, compute_velocity_field, streaming, equilibrium_distr_func, \
     lattice_boltzman_step, reynolds_number, strouhal_number
@@ -13,6 +15,10 @@ from src.initial_values import milestone_2_test_1_initial_val, milestone_2_test_
 
 from src.boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_variations, inlet, outlet, \
     rigid_object
+
+from src.parallelization_utils import communication
+
+from typing import Callable
 
 
 def milestone_1():
@@ -289,8 +295,11 @@ def milestone_6():
             # plt.show()
 
     np.save(r'../figures/von_karman_vortex_shedding/vel_at_p.py', vel_at_p)
+    vel_at_p = np.load(r'../figures/von_karman_vortex_shedding/vel_at_p.py.npy')
     np.save(r'../figures/von_karman_vortex_shedding/velocity.py', velocity)
+    velocity = np.load(r'../figures/von_karman_vortex_shedding/velocity.py.npy')
     np.save(r'../figures/von_karman_vortex_shedding/density.py', density)
+    density = np.load(r'../figures/von_karman_vortex_shedding/density.py.npy')
     absolute_velocity = np.linalg.norm(velocity, axis=-1)
     normalized_abs_velocity = absolute_velocity / np.amax(absolute_velocity)
     plt.imshow(normalized_abs_velocity.T)
@@ -300,12 +309,135 @@ def milestone_6():
     plt.plot(np.arange(0, time_steps + 1), vel_at_p, linewidth=0.3)
     plt.show()
 
-    frequencies = fft(vel_at_p)
-    plt.plot(np.arange(0, len(vel_at_p)), frequencies)
+    frequencies = []
+    vel_at_p -= np.mean(vel_at_p)
+    yf = fft(vel_at_p)
+    xf = fftfreq(len(vel_at_p), 1)
+    # xf = fftshift(xf)
+    frequencies.append(np.abs(yf))
+    plt.plot(xf, np.abs(yf))
     plt.show()
 
+    for i in range(2, 10):
+        vels = vel_at_p[len(vel_at_p) - int(len(vel_at_p) / i):]
+        plt.plot(np.arange(0, int(len(vel_at_p) / i)), vels, linewidth=0.3)
+        plt.show()
+        yf = fft(vels)
+        yf = np.abs(yf)
+        xf = fftfreq(len(vels), 1)
+        max_freq = xf[np.argmax(yf)]
+        # xf = fftshift(xf)
+        frequencies.append(np.abs(yf))
+        plt.plot(xf, np.abs(yf))
+        plt.show()
+        print(xf[np.argmax(frequencies[-1])], xf[np.argmax(frequencies[-2])])
+        if np.argmax(frequencies[-1]) != 0 and np.argmax(frequencies[-1]) == np.argmax(frequencies[-2]):
+            break
+
     vortex_frequency = np.argmax(frequencies)
-    strouhal = strouhal_number(vortex_frequency, ly, np.mean(velocity))
+    strouhal = strouhal_number(vortex_frequency, d, u0)
     print(strouhal)
-    reynolds = reynolds_number(ly, np.mean(velocity), kinematic_viscosity)
+    reynolds = reynolds_number(d, u0, kinematic_viscosity)
+    print(reynolds)
+
+
+def milestone_7():
+    lx, ly = 420, 180
+    d = 40
+    u0 = 0.1
+    density_in = 1.0
+    kinematic_viscosity = 0.04
+    omega = np.reciprocal(3 * kinematic_viscosity + 0.5)
+    time_steps = 100000
+
+    p_coords = [3 * lx // 4, ly // 2]
+
+    size = MPI.COMM_WORLD.Get_size()
+    rank = MPI.COMM_WORLD.Get_rank()
+    comm = MPI.COMM_WORLD
+    gcd = np.gcd(np.arange(size // 2), size)
+    gcd_sorted = np.sort(gcd)
+    # cartesian3d = comm.Create_cart(dims=[gcd_sorted[-2], size / gcd_sorted[-2]], periods=[True, True], reorder=False)
+    cartesian3d = comm.Create_cart(dims=[1, 1], periods=[True, True], reorder=False)
+
+    n_local_x = lx // size
+    n_local_y = ly // size
+    if rank == size - 1:
+        n_local_x = lx - n_local_x * (size - 1)
+        n_local_y = ly - n_local_y * (size - 1)
+
+    left_dst, right_dst = cartesian3d.Shift(direction=0, disp=1)
+    bottom_dst, top_dst = cartesian3d.Shift(direction=1, disp=1)
+
+    def boundary(coord3d, n_local_x, n_local_y):
+        max_coord_x = np.amax(coord3d[:, 0])
+
+        def bc(f_pre_streaming, f_post_streaming, density=None, velocity=None, f_previous=None):
+            if coord3d[0] == 0:
+                f_post_streaming[1:-1, 1:-1, :] = inlet((n_local_x, n_local_y), density_in, u0)(
+                    f_post_streaming[1:-1, 1:-1, :])
+
+            f_post_streaming[1:-1, 1:-1, :] = outlet()(f_previous[1:-1, 1:-1, :], f_post_streaming[1:-1, 1:-1, :])
+
+            plate_boundary = np.zeros((lx, ly))
+            plate_boundary[lx // 4, ly // 2 - d // 2:ly // 2 + d // 2] = 1
+            f_post_streaming = rigid_object(plate_boundary.astype(np.bool))(f_pre_streaming, f_post_streaming)
+            return f_post_streaming
+
+        return bc
+
+    density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((n_local_x + 2, n_local_y + 2), u0)
+    f = equilibrium_distr_func(density, velocity)
+    vel_at_p = [np.linalg.norm(velocity[p_coords[0], p_coords[1], ...])]
+    for i in range(time_steps):
+        print(i, np.sum(compute_density(f)))
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega,
+                                                     boundary(cartesian3d.Get_coords(rank), n_local_x, n_local_y),
+                                                     communication(left_dst, right_dst, bottom_dst, top_dst))
+        vel_at_p.append(np.linalg.norm(velocity[p_coords[0], p_coords[1], ...]))
+
+    np.save(r'../figures/von_karman_vortex_shedding/vel_at_p.py', vel_at_p)
+    vel_at_p = np.load(r'../figures/von_karman_vortex_shedding/vel_at_p.py.npy')
+    np.save(r'../figures/von_karman_vortex_shedding/velocity.py', velocity)
+    velocity = np.load(r'../figures/von_karman_vortex_shedding/velocity.py.npy')
+    np.save(r'../figures/von_karman_vortex_shedding/density.py', density)
+    density = np.load(r'../figures/von_karman_vortex_shedding/density.py.npy')
+    absolute_velocity = np.linalg.norm(velocity, axis=-1)
+    normalized_abs_velocity = absolute_velocity / np.amax(absolute_velocity)
+    plt.imshow(normalized_abs_velocity.T)
+    plt.colorbar()
+    plt.show()
+
+    plt.plot(np.arange(0, time_steps + 1), vel_at_p, linewidth=0.3)
+    plt.show()
+
+    frequencies = []
+    vel_at_p -= np.mean(vel_at_p)
+    yf = fft(vel_at_p)
+    xf = fftfreq(len(vel_at_p), 1)
+    # xf = fftshift(xf)
+    frequencies.append(np.abs(yf))
+    plt.plot(xf, np.abs(yf))
+    plt.show()
+
+    for i in range(2, 10):
+        vels = vel_at_p[len(vel_at_p) - int(len(vel_at_p) / i):]
+        plt.plot(np.arange(0, int(len(vel_at_p) / i)), vels, linewidth=0.3)
+        plt.show()
+        yf = fft(vels)
+        yf = np.abs(yf)
+        xf = fftfreq(len(vels), 1)
+        max_freq = xf[np.argmax(yf)]
+        # xf = fftshift(xf)
+        frequencies.append(np.abs(yf))
+        plt.plot(xf, np.abs(yf))
+        plt.show()
+        print(xf[np.argmax(frequencies[-1])], xf[np.argmax(frequencies[-2])])
+        if np.argmax(frequencies[-1]) != 0 and np.argmax(frequencies[-1]) == np.argmax(frequencies[-2]):
+            break
+
+    vortex_frequency = np.argmax(frequencies)
+    strouhal = strouhal_number(vortex_frequency, d, u0)
+    print(strouhal)
+    reynolds = reynolds_number(d, u0, kinematic_viscosity)
     print(reynolds)
