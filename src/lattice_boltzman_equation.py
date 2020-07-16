@@ -198,6 +198,7 @@ def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarr
         velocity: velocity u(x)
         omega:
         boundary:
+        parallel_communication:
 
     Returns:
         new probability density function, new density function, new velocity function
@@ -222,23 +223,3 @@ def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarr
     velocity = compute_velocity_field(density, f_post)
 
     return f_post, density, velocity
-
-
-def lattice_boltzman_solver(density: np.ndarray, velocity: np.ndarray, omega: float = 0.5,
-                            boundary: Callable[
-                                [np.ndarray, np.ndarray, np.ndarray, np.ndarray], np.ndarray] = None,
-                            time_steps: int = 1000) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    assert 0 < omega < 2
-
-    f = equilibrium_distr_func(density, velocity)
-
-    densities = [density]
-    velocities = [velocity]
-    fs = [f]
-    for i in range(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
-        densities.append(density)
-        velocities.append(velocity)
-        fs.append(fs)
-
-    return np.array(densities), np.array(velocities), np.array(fs)

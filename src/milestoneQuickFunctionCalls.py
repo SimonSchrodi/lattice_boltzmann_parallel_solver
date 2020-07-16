@@ -4,18 +4,19 @@ import matplotlib.pyplot as plt
 
 from mpi4py import MPI
 
-from src.lattice_boltzman_equation import compute_density, compute_velocity_field, streaming, equilibrium_distr_func, \
+from lattice_boltzman_equation import compute_density, compute_velocity_field, streaming, equilibrium_distr_func, \
     lattice_boltzman_step, reynolds_number, strouhal_number
-from src.visualizations import visualize_velocity_quiver, visualize_velocity_streamplot, \
+from visualizations import visualize_velocity_quiver, visualize_velocity_streamplot, \
     visualize_density_contour_plot, visualize_density_surface_plot
 
-from src.initial_values import milestone_2_test_1_initial_val, milestone_2_test_2_initial_val, sinusoidal_density_x, \
+from initial_values import milestone_2_test_1_initial_val, milestone_2_test_2_initial_val, sinusoidal_density_x, \
     sinusoidal_velocity_x, density_1_velocity_0_initial, density_1_velocity_x_u0_velocity_y_0_initial
 
-from src.boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_variations, inlet, outlet, \
+from boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_variations, inlet, outlet, \
     rigid_object
 
-from src.parallelization_utils import communication
+from parallelization_utils import communication, x_in_process, y_in_process, get_local_coords, \
+    global_coord_to_local_coord, global_to_local_direction
 
 from typing import Callable
 
@@ -341,47 +342,91 @@ def milestone_7():
     size = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
     comm = MPI.COMM_WORLD
-    gcd = np.gcd(np.arange(size // 2), size)
+    gcd = np.gcd(np.arange(size), size)
     gcd_sorted = np.sort(gcd)
-    # cartesian3d = comm.Create_cart(dims=[gcd_sorted[-2], size / gcd_sorted[-2]], periods=[True, True], reorder=False)
-    cartesian3d = comm.Create_cart(dims=[1, 1], periods=[True, True], reorder=False)
+    x_size = size / gcd_sorted[-2]
+    y_size = gcd_sorted[-2]
+    cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[True, True], reorder=False)
+    # cartesian2d = comm.Create_cart(dims=[1, 1], periods=[True, True], reorder=False)
+    coords2d = cartesian2d.Get_coords(rank)
 
-    n_local_x = lx // size
-    n_local_y = ly // size
-    # TODO rechten & oberen finden
-    if rank == size - 1:
-        n_local_x = lx - n_local_x * (size - 1)
-        n_local_y = ly - n_local_y * (size - 1)
+    n_local_x, n_local_y = get_local_coords(coords2d, lx, ly, x_size, y_size)
 
-    left_dst, right_dst = cartesian3d.Shift(direction=0, disp=1)
-    bottom_dst, top_dst = cartesian3d.Shift(direction=1, disp=1)
+    print(n_local_x, n_local_y)
+
+    left_dst, right_dst = cartesian2d.Shift(direction=0, disp=1)
+    bottom_dst, top_dst = cartesian2d.Shift(direction=1, disp=1)
 
     def boundary(coord2d, n_local_x, n_local_y):
-        max_coord_x = np.amax(coord2d[:, 0])
-
         def bc(f_pre_streaming, f_post_streaming, density=None, velocity=None, f_previous=None):
-            if coord2d[0] == 0:
+            if x_in_process(coord2d, 0, lx, x_size):
                 f_post_streaming[1:-1, 1:-1, :] = inlet((n_local_x, n_local_y), density_in, u0)(
                     f_post_streaming[1:-1, 1:-1, :])
 
-            f_post_streaming[1:-1, 1:-1, :] = outlet()(f_previous[1:-1, 1:-1, :], f_post_streaming[1:-1, 1:-1, :])
+            if x_in_process(coord2d, lx, lx, x_size) and x_in_process(coord2d, lx - 1, lx, x_size):
+                f_post_streaming[1:-1, 1:-1, :] = outlet()(f_previous[1:-1, 1:-1, :], f_post_streaming[1:-1, 1:-1, :])
+            elif x_in_process(coord2d, lx, lx, x_size) or x_in_process(coord2d, lx - 1, lx, x_size):
+                # TODO communicate f_previous
+                raise NotImplementedError
 
-            plate_boundary = np.zeros((lx, ly))
-            plate_boundary[lx // 4, ly // 2 - d // 2:ly // 2 + d // 2] = 1
-            f_post_streaming = rigid_object(plate_boundary.astype(np.bool))(f_pre_streaming, f_post_streaming)
+            # plate boundary condition
+            y_min, y_max = ly // 2 - d // 2 + 1, ly // 2 + d // 2 - 1
+            if x_in_process(coord2d, lx // 4, lx, x_size):  # left side
+                print(coord2d)
+                f_post_streaming[lx // 4, y_min:y_max, [3, 7, 6]] = f_pre_streaming[lx // 4, y_min:y_max, [1, 5, 8]]
+
+                if y_in_process(coord2d, ly // 2 + d // 2 - 1, ly, y_size):  # left side upper corner
+                    f_post_streaming[lx // 4, ly // 2 + d // 2 - 1, [3, 6]] = f_pre_streaming[lx // 4,
+                                                                                              ly // 2 + d // 2 - 1,
+                                                                                              [1, 8]]
+                if y_in_process(coord2d, ly // 2 - d // 2, ly, y_size):  # left side lower corner
+                    f_post_streaming[lx // 4, ly // 2 - d // 2, [3, 7]] = f_pre_streaming[lx // 4,
+                                                                                          ly // 2 - d // 2,
+                                                                                          [1, 5]]
+
+            if x_in_process(coord2d, lx // 4 + 1, lx, x_size):  # right side
+                f_post_streaming[lx // 4 + 1, y_min:y_max, [1, 5, 8]] = \
+                    f_pre_streaming[lx // 4 + 1, y_min:y_max, [3, 7, 6]]
+
+                if y_in_process(coord2d, ly // 2 + d // 2 - 1, ly, y_size):  # right side upper corner
+                    f_post_streaming[lx // 4 + 1, ly // 2 + d // 2 - 1, [1, 5]] = f_pre_streaming[lx // 4 + 1,
+                                                                                                  ly // 2 + d // 2 - 1,
+                                                                                                  [3, 7]]
+                if y_in_process(coord2d, ly // 2 - d // 2, ly, y_size):  # right side lower corner
+                    f_post_streaming[lx // 4 + 1, ly // 2 - d // 2, [1, 8]] = f_pre_streaming[lx // 4 + 1,
+                                                                                              ly // 2 - d // 2,
+                                                                                              [3, 6]]
+
             return f_post_streaming
 
         return bc
 
     density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((n_local_x + 2, n_local_y + 2), u0)
     f = equilibrium_distr_func(density, velocity)
-    vel_at_p = [np.linalg.norm(velocity[p_coords[0], p_coords[1], ...])]
+    process_coord, px, py = global_coord_to_local_coord(coords2d, p_coords[0], p_coords[1], lx, ly, x_size, y_size)
+    if process_coord is not None:
+        px += 1
+        py += 1  # due to ghost cells
+        vel_at_p = [np.linalg.norm(velocity[px, py, ...])]
+
+    bound_func = boundary(coords2d, n_local_x, n_local_y)
+    communication_func = communication(comm, left_dst, right_dst, bottom_dst, top_dst)
+    print(coords2d, n_local_x, n_local_y)
     for i in range(time_steps):
         print(i, np.sum(compute_density(f)))
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega,
-                                                     boundary(cartesian3d.Get_coords(rank), n_local_x, n_local_y),
-                                                     communication(left_dst, right_dst, bottom_dst, top_dst))
-        vel_at_p.append(np.linalg.norm(velocity[p_coords[0], p_coords[1], ...]))
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, bound_func, communication_func)
+        if process_coord is not None:
+            print(px, py, p_coords[0], p_coords[1])
+            vel_at_p.append(np.linalg.norm(velocity[px, py, ...]))
+        f_gather = comm.gather(f, root=0)
+        if rank == 0:
+            print('+' * 50)
+            f_test = np.load(r'./tests/von_karman_vortex_shedding/f_' + str(i) + '.py.npy')
+            f_gather = np.array(f_gather)
+            print(np.unique(f_test[:210, ...] == f_gather[0, 1:-1, 1:-1, :], return_counts=True))
+        import time
+        time.sleep(2)
+        print(asdf)
 
     np.save(r'../figures/von_karman_vortex_shedding/vel_at_p.py', vel_at_p)
     vel_at_p = np.load(r'../figures/von_karman_vortex_shedding/vel_at_p.py.npy')

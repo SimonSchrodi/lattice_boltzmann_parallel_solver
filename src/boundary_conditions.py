@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.lattice_boltzman_equation import vel_to_opp_vel_mapping, get_velocity_sets, get_w_i, equilibrium_distr_func
+from lattice_boltzman_equation import vel_to_opp_vel_mapping, get_velocity_sets, get_w_i, equilibrium_distr_func
 
 from typing import Callable, Tuple
 import operator

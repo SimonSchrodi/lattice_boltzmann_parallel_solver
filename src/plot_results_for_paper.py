@@ -9,9 +9,9 @@ from scipy.signal import argrelextrema
 from collections import OrderedDict
 import csv
 
-from src.initial_values import sinusoidal_density_x, sinusoidal_velocity_x, density_1_velocity_0_initial
-from src.lattice_boltzman_equation import equilibrium_distr_func, lattice_boltzman_step, lattice_boltzman_solver
-from src.boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_variations
+from initial_values import sinusoidal_density_x, sinusoidal_velocity_x, density_1_velocity_0_initial
+from lattice_boltzman_equation import equilibrium_distr_func, lattice_boltzman_step
+from boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_variations
 
 
 def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
