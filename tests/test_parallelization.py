@@ -116,7 +116,11 @@ def run_test():
             assert np.allclose(f_gather, f_test)
 
 if __name__ == "__main__":
-    if not os.path.exists(r'./tests/tmp'):
-        os.makedirs(r'./tests/tmp')
+    rank = MPI.COMM_WORLD.Get_rank()
+
+    if rank == 0:
+        if not os.path.exists(r'./tests/tmp'):
+            os.makedirs(r'./tests/tmp')
     run_test()
-    shutil.rmtree(r'./tests/tmp')
+    if rank == 0:
+        shutil.rmtree(r'./tests/tmp')

@@ -16,4 +16,10 @@ install:
 script:
   - make checkstyle
   - make test
+  - mpirun -N 1 python ./tests/test_parallelization.py
   - mpirun -N 2 python ./tests/test_parallelization.py
+  - mpirun -N 4 python ./tests/test_parallelization.py
+  - mpirun -N 6 python ./tests/test_parallelization.py
+  - mpirun -N 8 python ./tests/test_parallelization.py
+  - mpirun -N 9 python ./tests/test_parallelization.py
+  - mpirun -N 14 python ./tests/test_parallelization.py
