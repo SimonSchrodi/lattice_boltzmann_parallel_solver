@@ -19,7 +19,7 @@ def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
                               initial_p0: float = 0.5,
                               epsilon: float = 0.08,
                               omega: float = 1.0,
-                              time_steps: int = 2000,
+                              time_steps: int = 2500,
                               number_of_visualizations: int = 20):
     assert 0 < omega < 2
     assert time_steps > 0
@@ -55,7 +55,7 @@ def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
 def plot_evolution_of_velocity(lattice_grid_shape: Tuple[int, int] = (50, 50),
                                epsilon: float = 0.01,
                                omega: float = 1.0,
-                               time_steps: int = 2000,
+                               time_steps: int = 2500,
                                number_of_visualizations: int = 20):
     assert 0 < omega < 2
     assert time_steps > 0
