@@ -282,8 +282,8 @@ def milestone_6():
         vel_at_p.append(np.linalg.norm(velocity[p_coords[0], p_coords[1], ...]))
 
         np.save(r'../tests/von_karman_vortex_shedding/f_'+str(i)+'.npy', f)
-        #np.save(r'../tests/von_karman_vortex_shedding/density_' + str(i), density)
-        #np.save(r'../tests/von_karman_vortex_shedding/velocity_' + str(i), velocity)
+        # np.save(r'../tests/von_karman_vortex_shedding/density_' + str(i), density)
+        # np.save(r'../tests/von_karman_vortex_shedding/velocity_' + str(i), velocity)
 
         if i == 10:
             np.save(r'../tests/von_karman_vortex_shedding/vel_at_p', vel_at_p)
@@ -361,7 +361,8 @@ def milestone_7():
 
             # outlet
             if x_in_process(coord2d, lx - 1, lx, x_size) and x_in_process(coord2d, lx - 2, lx, x_size):
-                f_post_streaming[1:-1, 1:-1, :] = outlet()(f_previous.copy()[1:-1, 1:-1, :], f_post_streaming.copy()[1:-1, 1:-1, :])
+                f_post_streaming[1:-1, 1:-1, :] = outlet()(f_previous.copy()[1:-1, 1:-1, :],
+                                                           f_post_streaming.copy()[1:-1, 1:-1, :])
             elif x_in_process(coord2d, lx - 1, lx, x_size) or x_in_process(coord2d, lx - 2, lx, x_size):
                 # TODO communicate f_previous
                 raise NotImplementedError
