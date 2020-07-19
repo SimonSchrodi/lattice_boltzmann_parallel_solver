@@ -11,5 +11,4 @@
 ### Poiseuille flow evolution
 ![Poiseuille flow](figures/poiseuille_flow/vel_vectors_evolution.svg)
 
-# How to build
-# How to reproduce results
+## How to reproduce results
