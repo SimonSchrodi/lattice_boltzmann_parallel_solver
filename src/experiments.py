@@ -49,7 +49,7 @@ def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
     plt.rc('font', family='serif')
     fig.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9,
                         wspace=0.75, hspace=0.5)
-    plt.savefig(r'../figures/shear_wave_decay/evolution_density_surface.svg')
+    plt.savefig(r'./figures/shear_wave_decay/evolution_density_surface.svg')
 
 
 def plot_evolution_of_velocity(lattice_grid_shape: Tuple[int, int] = (50, 50),
@@ -85,7 +85,7 @@ def plot_evolution_of_velocity(lattice_grid_shape: Tuple[int, int] = (50, 50),
     plt.rc('font', family='serif')
     fig.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9,
                         wspace=0.75, hspace=0.5)
-    plt.savefig(r'../figures/shear_wave_decay/evolution_velocity_surface.svg')
+    plt.savefig(r'./figures/shear_wave_decay/evolution_velocity_surface.svg')
 
 
 def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 50),
@@ -154,7 +154,7 @@ def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
-    plt.savefig(r'../figures/shear_wave_decay/meas_visc_vs_omega.svg')
+    plt.savefig(r'./figures/shear_wave_decay/meas_visc_vs_omega.svg')
 
 
 def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
@@ -236,7 +236,7 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
-    plt.savefig(r'../figures/couette_flow/vel_vectors_evolution.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/couette_flow/vel_vectors_evolution.svg', bbox_inches='tight')
 
 
 def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30),
@@ -284,13 +284,13 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
-    plt.savefig(r'../figures/couette_flow/vel_vectors.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/couette_flow/vel_vectors.svg', bbox_inches='tight')
 
     plt.close()
 
     simulated = U * (ly - np.arange(0, ly + 1)) / ly
     slope, intercept, rvalue, pvalue, stderr = linregress(np.arange(ly + 1), simulated)
-    with open('../figures/couette_flow/linregress.csv', 'w', newline='') as csvfile:
+    with open('./figures/couette_flow/linregress.csv', 'w', newline='') as csvfile:
         fieldnames = ['slope', 'intercept', 'rvalue', 'pvalue', 'stderr']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -314,7 +314,7 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
-    plt.savefig(r'../figures/couette_flow/relative_error.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/couette_flow/relative_error.svg', bbox_inches='tight')
 
 
 def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200, 60),
@@ -398,13 +398,13 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
         plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
 
-        plt.savefig(r'../figures/poiseuille_flow/vel_vectors.svg', bbox_inches='tight')
+        plt.savefig(r'./figures/poiseuille_flow/vel_vectors.svg', bbox_inches='tight')
 
     plt.close()
 
     areas.append(areas[0]/areas[1])
     areas = np.array(areas)
-    with open('../figures/poiseuille_flow/areas.csv', 'w', newline='') as csvfile:
+    with open('./figures/poiseuille_flow/areas.csv', 'w', newline='') as csvfile:
         fieldnames = ['inlet', 'middle', 'relative_difference']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -427,12 +427,12 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
-    plt.savefig(r'../figures/poiseuille_flow/density_along_centerline.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/poiseuille_flow/density_along_centerline.svg', bbox_inches='tight')
 
     plt.close()
 
     popt, pcov = curve_fit(lambda y, a, b, c: a*(y**2)+b*y+c, np.array(y).squeeze(), uy)
-    with open('../figures/poiseuille_flow/curve_fit.csv', 'w', newline='') as csvfile:
+    with open('./figures/poiseuille_flow/curve_fit.csv', 'w', newline='') as csvfile:
         fieldnames = ['popt', 'pcov']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -454,7 +454,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
-    plt.savefig(r'../figures/poiseuille_flow/relative_error.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/poiseuille_flow/relative_error.svg', bbox_inches='tight')
 
 
 def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 30),
@@ -540,4 +540,4 @@ def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 3
     plt.rc('text', usetex=True)
     plt.rc('font', family='serif')
 
-    plt.savefig(r'../figures/poiseuille_flow/vel_vectors_evolution.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/poiseuille_flow/vel_vectors_evolution.svg', bbox_inches='tight')
