@@ -212,7 +212,7 @@ def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarr
     f_pre = (f + (f_eq - f) * omega)
 
     if parallel_communication is not None:
-        parallel_communication(f_pre)
+        f_pre = parallel_communication(f_pre)
 
     f_post = streaming(f_pre)
 

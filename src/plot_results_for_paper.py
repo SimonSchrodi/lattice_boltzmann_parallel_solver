@@ -8,6 +8,7 @@ from scipy.stats import linregress
 from scipy.signal import argrelextrema
 from collections import OrderedDict
 import csv
+from tqdm import trange, tqdm
 
 from initial_values import sinusoidal_density_x, sinusoidal_velocity_x, density_1_velocity_0_initial
 from lattice_boltzman_equation import equilibrium_distr_func, lattice_boltzman_step
@@ -31,7 +32,7 @@ def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
     ax[0, 0].plot(np.arange(0, lattice_grid_shape[0]), density[:, int(lattice_grid_shape[0] / 2)])
     ax[0, 0].set_title('initial')
     row_index, col_index = 0, 1
-    for i in range(time_steps):
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
         if (i + 1) % int(time_steps / number_of_visualizations) == 0:
             ax[row_index, col_index].plot(np.arange(0, lattice_grid_shape[-1]),
@@ -67,7 +68,7 @@ def plot_evolution_of_velocity(lattice_grid_shape: Tuple[int, int] = (50, 50),
     ax[0, 0].plot(np.arange(0, lattice_grid_shape[-1]), velocity[int(lattice_grid_shape[0] / 2), :, 0])
     ax[0, 0].set_title('initial')
     row_index, col_index = 0, 1
-    for i in range(time_steps):
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
         if (i + 1) % int(time_steps / number_of_visualizations) == 0:
             ax[row_index, col_index].plot(np.arange(0, lattice_grid_shape[-1]),
@@ -102,12 +103,12 @@ def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 
     for i, initial in enumerate(initial_distr_funcs):
         viscosity_sim = []
         viscosity_true = []
-        for om in omega:
+        for om in tqdm(omega):
             density, velocity = initial
             f = equilibrium_distr_func(density, velocity)
             vels = []
             dens = []
-            for _ in range(time_steps):
+            for _ in trange(time_steps):
                 f, density, velocity = lattice_boltzman_step(f, density, velocity, om)
                 if i == 0:
                     den_min = np.amin(density)
@@ -184,7 +185,7 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
     velocities = [velocity]
-    for i in range(time_steps):
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
         velocities.append(velocity)
 
@@ -260,7 +261,7 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
 
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
-    for i in range(time_steps):
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
     vx = velocity[..., 0]
 
@@ -349,7 +350,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
 
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
-    for i in range(time_steps):
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
 
     vx = velocity[..., 0]
@@ -496,7 +497,7 @@ def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 3
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
     velocities = [velocity]
-    for i in range(time_steps):
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
         velocities.append(velocity)
 

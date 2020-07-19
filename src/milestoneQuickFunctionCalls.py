@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit, least_squares
 import matplotlib.pyplot as plt
+from tqdm import tqdm, trange
 
 from mpi4py import MPI
 
@@ -16,7 +17,7 @@ from boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_
     rigid_object
 
 from parallelization_utils import communication, x_in_process, y_in_process, get_local_coords, \
-    global_coord_to_local_coord, global_to_local_direction
+    global_coord_to_local_coord, global_to_local_direction, save_mpiio, get_xy_size
 
 from typing import Callable
 
@@ -27,7 +28,7 @@ def milestone_1():
 
     prob_density_func = np.zeros((lx, ly, 9))
     prob_density_func[0:int(lx / 2), 0:int(ly / 2), 5] = np.ones((int(lx / 2), int(ly / 2)))
-    for i in range(time_steps):
+    for i in trange(time_steps):
         density = compute_density(prob_density_func)
         velocity = compute_velocity_field(density, prob_density_func)
         prob_density_func = streaming(prob_density_func)
@@ -40,7 +41,7 @@ def milestone_2_test_1():
     omega = 0.5
     density, velocity = milestone_2_test_1_initial_val((lx, ly))
     f = equilibrium_distr_func(density, velocity, 9)
-    for i in range(time_steps):
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
     visualize_density_surface_plot(density, (lx, ly))
 
@@ -52,7 +53,7 @@ def milestone_2_test_2():
 
     density, velocity = milestone_2_test_2_initial_val((lx, ly))
     f = equilibrium_distr_func(density, velocity)
-    for i in range(time_steps):
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
     visualize_density_surface_plot(density, (lx, ly))
 
@@ -68,7 +69,7 @@ def milestone_3_test_1():
     f = equilibrium_distr_func(density, velocity)
     # visualize_density_surface_plot(density, (lx, ly))
     dens = []
-    for i in range(time_steps):
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
         den_min = np.amin(density)
         den_max = np.amax(density)
@@ -115,7 +116,7 @@ def milestone_3_test_2():
     f = equilibrium_distr_func(density, velocity)
     # visualize_density_surface_plot(velocity[..., 1], (lx, ly))
     vels = []
-    for i in range(time_steps):
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
         # if i % 100 == 0:
         #    visualize_density_surface_plot(velocity[..., 0], (lx, ly))
@@ -160,7 +161,7 @@ def milestone_4():
 
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
-    for i in range(time_steps):
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
     vx = velocity[..., 0]
 
@@ -213,9 +214,8 @@ def milestone_5():
 
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
-    for i in range(time_steps):
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
-        print(i, np.sum(density))
 
     vx = velocity[..., 0]
     print(np.amax(velocity))
@@ -277,10 +277,18 @@ def milestone_6():
     density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((lx, ly), u0)
     f = equilibrium_distr_func(density, velocity)
     vel_at_p = [np.linalg.norm(velocity[p_coords[0], p_coords[1], ...])]
-    for i in range(time_steps):
-        print(i, np.sum(compute_density(f)))
+    for i in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
         vel_at_p.append(np.linalg.norm(velocity[p_coords[0], p_coords[1], ...]))
+
+        np.save(r'../tests/von_karman_vortex_shedding/f_'+str(i)+'.npy', f)
+        #np.save(r'../tests/von_karman_vortex_shedding/density_' + str(i), density)
+        #np.save(r'../tests/von_karman_vortex_shedding/velocity_' + str(i), velocity)
+
+        if i == 10:
+            np.save(r'../tests/von_karman_vortex_shedding/vel_at_p', vel_at_p)
+            raise Exception('Stop here')
+
         if i % 100 == 0:
             absolute_velocity = np.linalg.norm(velocity, axis=-1)
             normalized_abs_velocity = absolute_velocity / np.amax(absolute_velocity)
@@ -288,11 +296,6 @@ def milestone_6():
             from matplotlib import cm
             img = Image.fromarray(np.uint8(cm.viridis(normalized_abs_velocity.T) * 255))
             img.save(r'../figures/von_karman_vortex_shedding/all_png/' + str(i) + '.png')
-            # plt.imshow(absolute_velocity.T)
-            # plt.plot(lx // 4 * np.ones(ly)[ly // 2 - d // 2:ly // 2 + d // 2] + 0.5,
-            #         np.arange(0, ly)[ly // 2 - d // 2:ly // 2 + d // 2], c='red')
-            # plt.colorbar()
-            # plt.show()
 
     np.save(r'../figures/von_karman_vortex_shedding/vel_at_p.py', vel_at_p)
     vel_at_p = np.load(r'../figures/von_karman_vortex_shedding/vel_at_p.py.npy')
@@ -342,60 +345,56 @@ def milestone_7():
     size = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
     comm = MPI.COMM_WORLD
-    gcd = np.gcd(np.arange(size), size)
-    gcd_sorted = np.sort(gcd)
-    x_size = size / gcd_sorted[-2]
-    y_size = gcd_sorted[-2]
+    x_size, y_size = get_xy_size(size)
+
     cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[True, True], reorder=False)
-    # cartesian2d = comm.Create_cart(dims=[1, 1], periods=[True, True], reorder=False)
     coords2d = cartesian2d.Get_coords(rank)
 
     n_local_x, n_local_y = get_local_coords(coords2d, lx, ly, x_size, y_size)
 
-    print(n_local_x, n_local_y)
-
-    left_dst, right_dst = cartesian2d.Shift(direction=0, disp=1)
-    bottom_dst, top_dst = cartesian2d.Shift(direction=1, disp=1)
-
     def boundary(coord2d, n_local_x, n_local_y):
         def bc(f_pre_streaming, f_post_streaming, density=None, velocity=None, f_previous=None):
+            # inlet
             if x_in_process(coord2d, 0, lx, x_size):
                 f_post_streaming[1:-1, 1:-1, :] = inlet((n_local_x, n_local_y), density_in, u0)(
-                    f_post_streaming[1:-1, 1:-1, :])
+                    f_post_streaming.copy()[1:-1, 1:-1, :])
 
-            if x_in_process(coord2d, lx, lx, x_size) and x_in_process(coord2d, lx - 1, lx, x_size):
-                f_post_streaming[1:-1, 1:-1, :] = outlet()(f_previous[1:-1, 1:-1, :], f_post_streaming[1:-1, 1:-1, :])
-            elif x_in_process(coord2d, lx, lx, x_size) or x_in_process(coord2d, lx - 1, lx, x_size):
+            # outlet
+            if x_in_process(coord2d, lx - 1, lx, x_size) and x_in_process(coord2d, lx - 2, lx, x_size):
+                f_post_streaming[1:-1, 1:-1, :] = outlet()(f_previous.copy()[1:-1, 1:-1, :], f_post_streaming.copy()[1:-1, 1:-1, :])
+            elif x_in_process(coord2d, lx - 1, lx, x_size) or x_in_process(coord2d, lx - 2, lx, x_size):
                 # TODO communicate f_previous
                 raise NotImplementedError
 
             # plate boundary condition
             y_min, y_max = ly // 2 - d // 2 + 1, ly // 2 + d // 2 - 1
             if x_in_process(coord2d, lx // 4, lx, x_size):  # left side
-                print(coord2d)
-                f_post_streaming[lx // 4, y_min:y_max, [3, 7, 6]] = f_pre_streaming[lx // 4, y_min:y_max, [1, 5, 8]]
+                local_x = global_to_local_direction(coord2d[0], lx // 4, lx, x_size)
+                for y in range(y_min, y_max):
+                    if y_in_process(coord2d, y, ly, y_size):
+                        local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
+                        f_post_streaming[local_x, local_y, [3, 7, 6]] = f_pre_streaming[local_x, local_y, [1, 5, 8]]
 
                 if y_in_process(coord2d, ly // 2 + d // 2 - 1, ly, y_size):  # left side upper corner
-                    f_post_streaming[lx // 4, ly // 2 + d // 2 - 1, [3, 6]] = f_pre_streaming[lx // 4,
-                                                                                              ly // 2 + d // 2 - 1,
-                                                                                              [1, 8]]
+                    local_y = global_to_local_direction(coord2d[1], ly // 2 + d // 2 - 1, ly, y_size)
+                    f_post_streaming[local_x, local_y, [3, 6]] = f_pre_streaming[local_x, local_y, [1, 8]]
                 if y_in_process(coord2d, ly // 2 - d // 2, ly, y_size):  # left side lower corner
-                    f_post_streaming[lx // 4, ly // 2 - d // 2, [3, 7]] = f_pre_streaming[lx // 4,
-                                                                                          ly // 2 - d // 2,
-                                                                                          [1, 5]]
+                    local_y = global_to_local_direction(coord2d[1], ly // 2 - d // 2, ly, y_size)
+                    f_post_streaming[local_x, local_y, [3, 7]] = f_pre_streaming[local_x, local_y, [1, 5]]
 
             if x_in_process(coord2d, lx // 4 + 1, lx, x_size):  # right side
-                f_post_streaming[lx // 4 + 1, y_min:y_max, [1, 5, 8]] = \
-                    f_pre_streaming[lx // 4 + 1, y_min:y_max, [3, 7, 6]]
+                local_x = global_to_local_direction(coord2d[0], lx // 4 + 1, lx, x_size)
+                for y in range(y_min, y_max):
+                    if y_in_process(coord2d, y, ly, y_size):
+                        local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
+                        f_post_streaming[local_x, local_y, [1, 5, 8]] = f_pre_streaming[local_x, local_y, [3, 7, 6]]
 
                 if y_in_process(coord2d, ly // 2 + d // 2 - 1, ly, y_size):  # right side upper corner
-                    f_post_streaming[lx // 4 + 1, ly // 2 + d // 2 - 1, [1, 5]] = f_pre_streaming[lx // 4 + 1,
-                                                                                                  ly // 2 + d // 2 - 1,
-                                                                                                  [3, 7]]
+                    local_y = global_to_local_direction(coord2d[1], ly // 2 + d // 2 - 1, ly, y_size)
+                    f_post_streaming[local_x, local_y, [1, 5]] = f_pre_streaming[local_x, local_y, [3, 7]]
                 if y_in_process(coord2d, ly // 2 - d // 2, ly, y_size):  # right side lower corner
-                    f_post_streaming[lx // 4 + 1, ly // 2 - d // 2, [1, 8]] = f_pre_streaming[lx // 4 + 1,
-                                                                                              ly // 2 - d // 2,
-                                                                                              [3, 6]]
+                    local_y = global_to_local_direction(coord2d[1], ly // 2 - d // 2, ly, y_size)
+                    f_post_streaming[local_x, local_y, [1, 8]] = f_pre_streaming[local_x, local_y, [3, 6]]
 
             return f_post_streaming
 
@@ -405,28 +404,34 @@ def milestone_7():
     f = equilibrium_distr_func(density, velocity)
     process_coord, px, py = global_coord_to_local_coord(coords2d, p_coords[0], p_coords[1], lx, ly, x_size, y_size)
     if process_coord is not None:
-        px += 1
-        py += 1  # due to ghost cells
         vel_at_p = [np.linalg.norm(velocity[px, py, ...])]
 
     bound_func = boundary(coords2d, n_local_x, n_local_y)
-    communication_func = communication(comm, left_dst, right_dst, bottom_dst, top_dst)
-    print(coords2d, n_local_x, n_local_y)
+    communication_func = communication(cartesian2d)
+    if rank == 0:
+        pbar = tqdm(total=time_steps)
     for i in range(time_steps):
-        print(i, np.sum(compute_density(f)))
+        if rank == 0:
+            pbar.update(1)
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, bound_func, communication_func)
         if process_coord is not None:
-            print(px, py, p_coords[0], p_coords[1])
             vel_at_p.append(np.linalg.norm(velocity[px, py, ...]))
+            vel_at_p_test = np.load(r'./tests/von_karman_vortex_shedding/vel_at_p.npy')
+            print(vel_at_p[-1] == vel_at_p_test[i + 1])
+
+        for i in range(9):
+            save_mpiio(cartesian2d, r'./tests/f_' + str(i) + '.npy', f[1:-1, 1:-1, i])
+
         f_gather = comm.gather(f, root=0)
         if rank == 0:
             print('+' * 50)
-            f_test = np.load(r'./tests/von_karman_vortex_shedding/f_' + str(i) + '.py.npy')
+            print(asdf)
+            f_test = np.load(r'./tests/von_karman_vortex_shedding/f_' + str(i) + '.npy')
             f_gather = np.array(f_gather)
-            print(np.unique(f_test[:210, ...] == f_gather[0, 1:-1, 1:-1, :], return_counts=True))
-        import time
-        time.sleep(2)
-        print(asdf)
+            # print(np.unique(f_test[:210, :90] == f_gather[0, 1:-1, 1:-1, :], return_counts=True))
+            # print(np.unique(f_test[:210, 90:] == f_gather[1, 1:-1, 1:-1, :], return_counts=True))
+            # print(np.unique(f_test[210:, :90] == f_gather[2, 1:-1, 1:-1, :], return_counts=True))
+            # print(np.unique(f_test[210:, 90:] == f_gather[3, 1:-1, 1:-1, :], return_counts=True))
 
     np.save(r'../figures/von_karman_vortex_shedding/vel_at_p.py', vel_at_p)
     vel_at_p = np.load(r'../figures/von_karman_vortex_shedding/vel_at_p.py.npy')

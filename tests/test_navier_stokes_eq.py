@@ -32,7 +32,7 @@ class TestNavieStockEquations(unittest.TestCase):
 
     def test_impulse_conservation_1(self):
         """
-        Test 1st mass conservation equation
+        Test 1st impulse conservation equation
         """
         prob_density_func = np.ones((10, 10, 9))/9
         density = compute_density(prob_density_func)
@@ -44,7 +44,7 @@ class TestNavieStockEquations(unittest.TestCase):
 
     def test_impulse_conservation_2(self):
         """
-        Test 2nd mass conservation equation
+        Test 2nd impulse conservation equation
         """
 
         c_i = get_velocity_sets()
