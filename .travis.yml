@@ -16,3 +16,4 @@ install:
 script:
   - make checkstyle
   - make test
+  - mpirun -N 2 ./tests/test_parallelization
