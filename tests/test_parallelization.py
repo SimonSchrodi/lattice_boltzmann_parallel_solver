@@ -22,7 +22,7 @@ def run_test():
     density_in = 1.0
     kinematic_viscosity = 0.04
     omega = np.reciprocal(3 * kinematic_viscosity + 0.5)
-    time_steps = 401
+    time_steps = 11
 
     p_coords = [3 * lx // 4, ly // 2]
 
