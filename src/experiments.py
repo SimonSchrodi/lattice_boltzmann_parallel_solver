@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+from PIL import Image
 from typing import Tuple
 import numpy as np
 from scipy.optimize import curve_fit
@@ -9,10 +9,20 @@ from scipy.signal import argrelextrema
 from collections import OrderedDict
 import csv
 from tqdm import trange, tqdm
+import os
+import time
 
-from initial_values import sinusoidal_density_x, sinusoidal_velocity_x, density_1_velocity_0_initial
+from mpi4py import MPI
+
+from initial_values import sinusoidal_density_x, sinusoidal_velocity_x, density_1_velocity_0_initial, \
+    density_1_velocity_x_u0_velocity_y_0_initial
 from lattice_boltzman_equation import equilibrium_distr_func, lattice_boltzman_step
-from boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_variations
+from boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_variations, inlet, outlet
+from parallelization_utils import communication, x_in_process, y_in_process, get_local_coords, \
+    global_coord_to_local_coord, global_to_local_direction, save_mpiio, get_xy_size
+
+from boundary_utils import couette_flow_boundary_conditions, poiseuille_flow_boundary_conditions, \
+    parallel_von_karman_boundary_conditions
 
 
 def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
@@ -169,24 +179,12 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
     fig, ax = plt.subplots(int(number_of_visualizations / 5), 5, sharex=True, sharey=True)
     row_index, col_index = 0, 0
 
-    def boundary(f_pre_streaming, f_post_streaming, density, velocity, f=None):
-        boundary_rigid_wall = np.zeros((lx, ly))
-        boundary_rigid_wall[:, -1] = np.ones(ly)
-        f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
-        boundary_moving_wall = np.zeros((lx, ly))
-        boundary_moving_wall[:, 0] = np.ones(ly)
-        u_w = np.array(
-            [U, 0]
-        )
-        f_post_streaming = moving_wall(boundary_moving_wall.astype(np.bool), u_w, density)(f_pre_streaming,
-                                                                                           f_post_streaming)
-        return f_post_streaming
-
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
     velocities = [velocity]
-    for i in trange(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+    boundary_func = couette_flow_boundary_conditions(lx, ly, U, np.mean(density))
+    for _ in trange(time_steps):
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary_func)
         velocities.append(velocity)
 
     velocities_for_viz = [velocity for i, velocity in enumerate(velocities) if
@@ -246,23 +244,11 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
     assert U <= 1 / np.sqrt(3)
     lx, ly = lattice_grid_shape
 
-    def boundary(f_pre_streaming, f_post_streaming, density, velocity=None, f=None):
-        boundary_rigid_wall = np.zeros(lattice_grid_shape)
-        boundary_rigid_wall[:, -1] = np.ones(lx)
-        f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
-        boundary_moving_wall = np.zeros(lattice_grid_shape)
-        boundary_moving_wall[:, 0] = np.ones(lx)
-        u_w = np.array(
-            [U, 0]
-        )
-        f_post_streaming = moving_wall(boundary_moving_wall.astype(np.bool), u_w, density)(f_pre_streaming,
-                                                                                           f_post_streaming)
-        return f_post_streaming
-
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
-    for i in trange(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+    boundary_func = couette_flow_boundary_conditions(lx, ly, U, np.mean(density))
+    for _ in trange(time_steps):
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary_func)
     vx = velocity[..., 0]
 
     for vec, y_coord in zip(vx[int(lx / 2), :], np.arange(0, ly)):
@@ -305,8 +291,8 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
         )
     analytical_points = [intercept + slope * (x + 0.5) for x in np.arange(0, ly)]
     simulated_points = vx[int(lx / 2), :]
-    relative_error = np.abs(analytical_points-simulated_points)/analytical_points
-    plt.plot(np.arange(0, ly), relative_error*100)
+    relative_error = np.abs(analytical_points - simulated_points) / analytical_points
+    plt.plot(np.arange(0, ly), relative_error * 100)
 
     plt.xlabel(r'y position [lu]')
     plt.ylabel(r'relative error [\%]')
@@ -320,38 +306,22 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
 def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200, 60),
                                      omega: float = 1.5,
                                      delta_p: float = 0.001,
-                                     time_steps: int = 20000):
+                                     time_steps: int = 40000):
     lx, ly = lattice_grid_shape
 
     rho_0 = 1
     delta_rho = delta_p * 3
-    rho_inlet = rho_0 + (delta_rho/2)
-    rho_outlet = rho_0 - (delta_rho/2)
+    rho_inlet = rho_0 + (delta_rho / 2)
+    rho_outlet = rho_0 - (delta_rho / 2)
     p_in = rho_inlet / 3
     p_out = rho_outlet / 3
 
-    def boundary(f_pre_streaming, f_post_streaming, density, velocity, f=None):
-        boundary = np.zeros((lx, ly))
-        boundary[0, :] = np.ones(ly)
-        boundary[-1, :] = np.ones(ly)
-        f_post_streaming = periodic_with_pressure_variations(boundary.astype(np.bool), p_in, p_out)(
-            f_pre_streaming,
-            f_post_streaming,
-            density, velocity)
-
-        boundary_rigid_wall = np.zeros((lx, ly))
-        boundary_rigid_wall[:, 0] = np.ones(lx)
-        f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
-        boundary_rigid_wall = np.zeros((lx, ly))
-        boundary_rigid_wall[:, -1] = np.ones(lx)
-        f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
-
-        return f_post_streaming
+    boundary_func = poiseuille_flow_boundary_conditions(lx, ly, p_in, p_out)
 
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
-    for i in trange(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+    for _ in trange(time_steps):
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary_func)
 
     vx = velocity[..., 0]
     x_coords = [1, lx // 2]
@@ -361,9 +331,9 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
     colors = ['cyan', 'blue']
     linestyle = [':', '-.']
     for c, ls, x_coord in zip(colors, linestyle, x_coords):
-        # for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
-        #     origin = [0, y_coord]
-        #     plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
+        for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
+            origin = [0, y_coord]
+            plt.quiver(*origin, *[vec, 0.0], color=c, scale_units='xy', scale=1, headwidth=3, width=0.0025)
         plt.plot(vx[x_coord, :], np.arange(0, ly), label='Sim. sol. channel ' + str(x_coord), linewidth=1, c=c,
                  linestyle=ls)
         areas.append(
@@ -402,7 +372,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
 
     plt.close()
 
-    areas.append(areas[0]/areas[1])
+    areas.append(areas[0] / areas[1])
     areas = np.array(areas)
     with open('./figures/poiseuille_flow/areas.csv', 'w', newline='') as csvfile:
         fieldnames = ['inlet', 'middle', 'relative_difference']
@@ -431,7 +401,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
 
     plt.close()
 
-    popt, pcov = curve_fit(lambda y, a, b, c: a*(y**2)+b*y+c, np.array(y).squeeze(), uy)
+    popt, pcov = curve_fit(lambda y, a, b, c: a * (y ** 2) + b * y + c, np.array(y).squeeze(), uy)
     with open('./figures/poiseuille_flow/curve_fit.csv', 'w', newline='') as csvfile:
         fieldnames = ['popt', 'pcov']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -443,8 +413,8 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
             }
         )
     a, b, c = popt
-    analytical_points = [a*((x + 0.5)**2)+b*(x+0.5)+c for x in np.arange(0, ly)]
-    simulated_points = vx[int(lx / 2), :]
+    analytical_points = [a * ((x + 0.5) ** 2) + b * (x + 0.5) + c for x in np.arange(0, ly)]
+    simulated_points = vx[int(lx // 2), :]
     relative_error = np.abs(analytical_points - simulated_points) / analytical_points
     plt.plot(np.arange(0, ly), relative_error * 100)
 
@@ -460,7 +430,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
 def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 30),
                                    omega: float = 1.5,
                                    delta_p: float = 0.001111,
-                                   time_steps: int = 5000,
+                                   time_steps: int = 10000,
                                    number_of_visualizations: int = 30):
     assert number_of_visualizations % 5 == 0
 
@@ -476,29 +446,12 @@ def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 3
     p_in = rho_inlet / 3
     p_out = rho_outlet / 3
 
-    def boundary(f_pre_streaming, f_post_streaming, density, velocity):
-        boundary = np.zeros((lx, ly))
-        boundary[0, :] = np.ones(ly)
-        boundary[-1, :] = np.ones(ly)
-        f_post_streaming = periodic_with_pressure_variations(boundary.astype(np.bool), p_in, p_out)(
-            f_pre_streaming,
-            f_post_streaming,
-            density, velocity)
-
-        boundary_rigid_wall = np.zeros((lx, ly))
-        boundary_rigid_wall[:, 0] = np.ones(lx)
-        f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
-        boundary_rigid_wall = np.zeros((lx, ly))
-        boundary_rigid_wall[:, -1] = np.ones(lx)
-        f_post_streaming = rigid_wall(boundary_rigid_wall.astype(np.bool))(f_pre_streaming, f_post_streaming)
-
-        return f_post_streaming
-
+    boundary_func = poiseuille_flow_boundary_conditions(lx, ly, p_in, p_out)
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
     velocities = [velocity]
-    for i in trange(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+    for _ in trange(time_steps):
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary_func)
         velocities.append(velocity)
 
     x_coord = lx // 2
@@ -513,13 +466,13 @@ def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 3
         if i % int(time_steps / (number_of_visualizations - 1)) == 0:
             vx = velocity[..., 0]
 
+            ax[row_index, col_index].plot(uy, y - 0.5, label='Analyt. sol.', c='red', linewidth=0.5)
             for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
                 origin = [0, y_coord]
                 ax[row_index, col_index].quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1,
                                                 headwidth=3, width=0.0025)
             ax[row_index, col_index].plot(vx[x_coord, :], np.arange(0, ly), label='Sim. sol.', linewidth=1, c='blue',
                                           linestyle=':')
-            ax[row_index, col_index].plot(uy, y - 0.5, label='Analyt. sol.', c='red', linestyle='--')
 
             if i == 0:
                 ax[row_index, col_index].set_title('initial')
@@ -541,3 +494,160 @@ def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 3
     plt.rc('font', family='serif')
 
     plt.savefig(r'./figures/poiseuille_flow/vel_vectors_evolution.svg', bbox_inches='tight')
+
+
+def plot_parallel_von_karman_vortex_street(lattice_grid_shape: Tuple[int, int] = (420, 180),
+                                           plate_size: int = 40,
+                                           inlet_density: float = 1.0,
+                                           inlet_velocity: float = 0.1,
+                                           kinematic_viscosity: float = 0.04,
+                                           time_steps: int = 100000):
+    # setup
+    lx, ly = lattice_grid_shape
+    omega = np.reciprocal(3 * kinematic_viscosity + 0.5)
+
+    p_coords = [3 * lx // 4, ly // 2]
+
+    size = MPI.COMM_WORLD.Get_size()
+    rank = MPI.COMM_WORLD.Get_rank()
+    comm = MPI.COMM_WORLD
+    x_size, y_size = get_xy_size(size)
+
+    cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[True, True], reorder=False)
+    coords2d = cartesian2d.Get_coords(rank)
+
+    n_local_x, n_local_y = get_local_coords(coords2d, lx, ly, x_size, y_size)
+
+    density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((n_local_x + 2, n_local_y + 2), inlet_velocity)
+    f = equilibrium_distr_func(density, velocity)
+    process_coord, px, py = global_coord_to_local_coord(coords2d, p_coords[0], p_coords[1], lx, ly, x_size, y_size)
+    if process_coord is not None:
+        vel_at_p = [np.linalg.norm(velocity[px, py, ...])]
+
+    bound_func = parallel_von_karman_boundary_conditions(coords2d, n_local_x, n_local_y, lx, ly, x_size, y_size,
+                                                         inlet_density, inlet_velocity, plate_size)
+    communication_func = communication(cartesian2d)
+
+    # main loop
+    if rank == 0:
+        pbar = tqdm(total=time_steps)
+    for i in range(time_steps):
+        if rank == 0:
+            pbar.update(1)
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, bound_func, communication_func)
+        if process_coord is not None:
+            vel_at_p.append(np.linalg.norm(velocity[px, py, ...]))
+
+        if i % 100 == 0:
+            abs_vel = np.linalg.norm(velocity[1:-1, 1:-1, :], axis=-1)
+            save_mpiio(cartesian2d, r'./figures/von_karman_vortex_shedding/all_png_parallel/vel_norm.npy', abs_vel)
+
+            if rank == 0:
+                abs_vel = np.load(r'./figures/von_karman_vortex_shedding/all_png_parallel/vel_norm.npy')
+                normalized_vel = abs_vel / np.amax(abs_vel)
+                img = Image.fromarray(np.uint8(cm.viridis(normalized_vel.T) * 255))
+                img.save(r'./figures/von_karman_vortex_shedding/all_png_parallel/' + str(i) + '.png')
+                os.remove(r'./figures/von_karman_vortex_shedding/all_png_parallel/vel_norm.npy')
+
+
+def x_strouhal(folder_name: str,
+               lattice_grid_shape: Tuple[int, int] = (420, 180),
+               plate_size: int = 40,
+               inlet_density: float = 1.0,
+               inlet_velocity: float = 0.1,
+               kinematic_viscosity: float = 0.04,
+               time_steps: int = 100000):
+    # setup
+    lx, ly = lattice_grid_shape
+    omega = np.reciprocal(3 * kinematic_viscosity + 0.5)
+
+    p_coords = [3 * lx // 4, ly // 2]
+
+    size = MPI.COMM_WORLD.Get_size()
+    rank = MPI.COMM_WORLD.Get_rank()
+    comm = MPI.COMM_WORLD
+    x_size, y_size = get_xy_size(size)
+
+    cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[True, True], reorder=False)
+    coords2d = cartesian2d.Get_coords(rank)
+
+    n_local_x, n_local_y = get_local_coords(coords2d, lx, ly, x_size, y_size)
+
+    density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((n_local_x + 2, n_local_y + 2), inlet_velocity)
+    f = equilibrium_distr_func(density, velocity)
+    process_coord, px, py = global_coord_to_local_coord(coords2d, p_coords[0], p_coords[1], lx, ly, x_size, y_size)
+    if process_coord is not None:
+        vel_at_p = [np.linalg.norm(velocity[px, py, ...])]
+
+    bound_func = parallel_von_karman_boundary_conditions(coords2d, n_local_x, n_local_y, lx, ly, x_size, y_size,
+                                                         inlet_density, inlet_velocity, plate_size)
+    communication_func = communication(cartesian2d)
+
+    # main loop
+    if rank == 0:
+        pbar = tqdm(total=time_steps)
+    for i in range(time_steps):
+        if rank == 0:
+            pbar.update(1)
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, bound_func, communication_func)
+        if process_coord is not None:
+            vel_at_p.append(np.linalg.norm(velocity[px, py, ...]))
+
+    if process_coord is not None:
+        if 'reynold' in folder_name:
+            reynolds_number = plate_size * inlet_velocity / kinematic_viscosity
+            np.save(r'./figures/von_karman_vortex_shedding/' + folder_name + '/vel_at_p_' + str(
+                int(reynolds_number)) + '.npy', vel_at_p)
+        elif 'nx' in folder_name:
+            np.save(r'./figures/von_karman_vortex_shedding/' + folder_name + '/vel_at_p_' + str(int(lx)) + '.npy',
+                    vel_at_p)
+        elif 'blockage' in folder_name:
+            blockage_ratio = plate_size / ly
+            np.save(r'./figures/von_karman_vortex_shedding/' + folder_name + '/vel_at_p_' + str(
+                blockage_ratio) + '.npy',
+                    vel_at_p)
+        else:
+            raise Exception('Unknown experiment')
+
+
+def scaling_test(folder_name: str,
+                 lattice_grid_shape: Tuple[int, int] = (420, 180),
+                 plate_size: int = 40,
+                 inlet_density: float = 1.0,
+                 inlet_velocity: float = 0.1,
+                 kinematic_viscosity: float = 0.04,
+                 time_steps: int = 20000):
+    # setup
+    lx, ly = lattice_grid_shape
+    omega = np.reciprocal(3 * kinematic_viscosity + 0.5)
+
+    p_coords = [3 * lx // 4, ly // 2]
+
+    size = MPI.COMM_WORLD.Get_size()
+    rank = MPI.COMM_WORLD.Get_rank()
+    comm = MPI.COMM_WORLD
+    x_size, y_size = get_xy_size(size)
+
+    cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[True, True], reorder=False)
+    coords2d = cartesian2d.Get_coords(rank)
+
+    n_local_x, n_local_y = get_local_coords(coords2d, lx, ly, x_size, y_size)
+
+    density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((n_local_x + 2, n_local_y + 2), inlet_velocity)
+    f = equilibrium_distr_func(density, velocity)
+
+    bound_func = parallel_von_karman_boundary_conditions(coords2d, n_local_x, n_local_y, lx, ly, x_size, y_size,
+                                                         inlet_density, inlet_velocity, plate_size)
+    communication_func = communication(cartesian2d)
+
+    # main loop
+    if rank == 0:
+        start = time.time()
+    for i in range(time_steps):
+        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, bound_func, communication_func)
+    if rank == 0:
+        end = time.time()
+        runtime = end - start
+        mlups = lx * ly * time_steps / runtime
+        np.save(r'./figures/von_karman_vortex_shedding/' + folder_name + '/' + str(
+            int(lx)) + '_' + str(int(ly)) + '_' + str(int(size)) + '.npy', np.array([mlups]))

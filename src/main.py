@@ -5,9 +5,12 @@ from experiments import \
      plot_couette_flow_evolution,
      plot_couette_flow_vel_vectors,
      plot_poiseuille_flow_vel_vectors,
-     plot_poiseuille_flow_evolution)
+     plot_poiseuille_flow_evolution,
+     plot_parallel_von_karman_vortex_street,
+     x_strouhal,
+     scaling_test)
 
-from milestoneQuickFunctionCalls import milestone_6
+from visualizations_utils import pngs_to_gif
 
 import argparse
 
@@ -21,10 +24,23 @@ def main():
                                                                "couette_vectors",
                                                                "poiseuille_vectors",
                                                                "poiseuille_evolution",
-                                                               "Reynold_Strouhal"
-                                                               "scaling_test"],
+                                                               "plot_von_karman",
+                                                               "reynold_strouhal",
+                                                               "nx_strouhal",
+                                                               "blockage_strouhal",
+                                                               "scaling_test",
+                                                               "pngs_to_gif"],
                         help="Which figure to generate")
+    parser.add_argument("-lx", "--lx", type=int)
+    parser.add_argument("-ly", "--ly", type=int)
     args = parser.parse_args()
+
+    if args.lx is not None or args.ly is not None:
+        raise Exception('lx and ly both have to be defined')
+
+    if args.lx is not None and args.ly is not None:
+        lx = args.lx
+        ly = args.ly
 
     if args.function == "shear_wave_decay_density":
         plot_evolution_of_density()
@@ -40,10 +56,33 @@ def main():
         plot_poiseuille_flow_evolution()
     elif args.function == "poiseuille_vectors":
         plot_poiseuille_flow_vel_vectors()
-    elif args.function == "Reynold_Strouhal":
-        None
+    elif args.function == "plot_von_karman":
+        if args.lx is not None and args.ly is not None:
+            plot_parallel_von_karman_vortex_street(lattice_grid_shape=(lx, ly))
+        else:
+            plot_parallel_von_karman_vortex_street()
+    elif args.function == "reynold_strouhal":
+        reynolds_numbers = [40, 70, 100, 140, 170, 200]
+        for re in reynolds_numbers:
+            visc = 40 * 0.1 / re
+            x_strouhal(folder_name='reynold_strouhal', kinematic_viscosity=visc)
+    elif args.function == "nx_strouhal":
+        lxs = [100, 250, 500, 750, 1000, 1250]
+        ly = 180
+        for lx in lxs:
+            x_strouhal(folder_name='nx_strouhal', lattice_grid_shape=(lx, ly))
+    elif args.function == "blockage_strouhal":
+        lx = 420
+        lys = [60, 100, 140, 180, 220, 260]
+        for ly in lys:
+            x_strouhal(folder_name='blockage_strouhal', lattice_grid_shape=(lx, ly))
     elif args.function == "scaling_test":
-        None
+        if args.lx is not None and args.ly is not None:
+            scaling_test(folder_name='scaling_test', lattice_grid_shape=(lx, ly))
+        else:
+            scaling_test(folder_name='scaling_test')
+    elif args.function == "pngs_to_gif":
+        pngs_to_gif()
     else:
         raise Exception('Unknown function')
 

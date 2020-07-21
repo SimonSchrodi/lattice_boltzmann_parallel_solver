@@ -5,9 +5,11 @@ from tqdm import tqdm, trange
 
 from mpi4py import MPI
 
+import os
+
 from lattice_boltzman_equation import compute_density, compute_velocity_field, streaming, equilibrium_distr_func, \
     lattice_boltzman_step, reynolds_number, strouhal_number
-from visualizations import visualize_velocity_quiver, visualize_velocity_streamplot, \
+from visualizations_utils import visualize_velocity_quiver, visualize_velocity_streamplot, \
     visualize_density_contour_plot, visualize_density_surface_plot
 
 from initial_values import milestone_2_test_1_initial_val, milestone_2_test_2_initial_val, sinusoidal_density_x, \
@@ -281,7 +283,7 @@ def milestone_6():
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
         vel_at_p.append(np.linalg.norm(velocity[p_coords[0], p_coords[1], ...]))
 
-        np.save(r'../tests/von_karman_vortex_shedding/f_'+str(i)+'.npy', f)
+        np.save(r'../tests/von_karman_vortex_shedding/f_' + str(i) + '.npy', f)
         # np.save(r'../tests/von_karman_vortex_shedding/density_' + str(i), density)
         # np.save(r'../tests/von_karman_vortex_shedding/velocity_' + str(i), velocity)
 
@@ -417,22 +419,20 @@ def milestone_7():
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, bound_func, communication_func)
         if process_coord is not None:
             vel_at_p.append(np.linalg.norm(velocity[px, py, ...]))
-            vel_at_p_test = np.load(r'./tests/von_karman_vortex_shedding/vel_at_p.npy')
-            print(vel_at_p[-1] == vel_at_p_test[i + 1])
 
-        for i in range(9):
-            save_mpiio(cartesian2d, r'./tests/f_' + str(i) + '.npy', f[1:-1, 1:-1, i])
+        if i % 100 == 0:
+            abs_vel = np.linalg.norm(velocity[1:-1, 1:-1, :], axis=-1)
+            assert abs_vel.shape == (n_local_x, n_local_y)
+            save_mpiio(cartesian2d, r'./figures/von_karman_vortex_shedding/all_png_parallel/vel_norm.npy', abs_vel)
 
-        f_gather = comm.gather(f, root=0)
-        if rank == 0:
-            print('+' * 50)
-            print(asdf)
-            f_test = np.load(r'./tests/von_karman_vortex_shedding/f_' + str(i) + '.npy')
-            f_gather = np.array(f_gather)
-            # print(np.unique(f_test[:210, :90] == f_gather[0, 1:-1, 1:-1, :], return_counts=True))
-            # print(np.unique(f_test[:210, 90:] == f_gather[1, 1:-1, 1:-1, :], return_counts=True))
-            # print(np.unique(f_test[210:, :90] == f_gather[2, 1:-1, 1:-1, :], return_counts=True))
-            # print(np.unique(f_test[210:, 90:] == f_gather[3, 1:-1, 1:-1, :], return_counts=True))
+            if rank == 0:
+                abs_vel = np.load(r'./figures/von_karman_vortex_shedding/all_png_parallel/vel_norm.npy')
+                normalized_vel = abs_vel / np.amax(abs_vel)
+                from PIL import Image
+                from matplotlib import cm
+                img = Image.fromarray(np.uint8(cm.viridis(normalized_vel.T) * 255))
+                img.save(r'./figures/von_karman_vortex_shedding/all_png_parallel/' + str(i) + '.png')
+                os.remove(r'./figures/von_karman_vortex_shedding/all_png_parallel/vel_norm.npy')
 
     np.save(r'../figures/von_karman_vortex_shedding/vel_at_p.py', vel_at_p)
     vel_at_p = np.load(r'../figures/von_karman_vortex_shedding/vel_at_p.py.npy')
