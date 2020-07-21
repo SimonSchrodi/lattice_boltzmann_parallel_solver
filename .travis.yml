@@ -6,6 +6,7 @@ addons:
     packages:
       - libopenmpi-dev
       - openmpi-bin
+      - gifsicle
 python:
   - "3.5"
   - "3.6"

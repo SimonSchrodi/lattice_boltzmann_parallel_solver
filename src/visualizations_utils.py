@@ -6,6 +6,7 @@ from PIL import Image
 import glob
 import re
 import collections
+from pygifsicle import optimize
 
 import matplotlib.cm as cm
 
@@ -95,3 +96,5 @@ def pngs_to_gif():
                    append_images=frames[1:],
                    save_all=True,
                    duration=0.5, loop=0)
+
+    optimize(r'./figures/von_karman_vortex_shedding/png_to_gif.gif')

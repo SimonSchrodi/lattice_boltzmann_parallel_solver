@@ -7,6 +7,7 @@ export PYTHONPATH
 all: init test
 
 init:
+	bash setup.sh
 	pip3 install -r requirements.txt
 
 test:
