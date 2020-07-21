@@ -616,7 +616,7 @@ def scaling_test(folder_name: str,
                  inlet_density: float = 1.0,
                  inlet_velocity: float = 0.1,
                  kinematic_viscosity: float = 0.04,
-                 time_steps: int = 100000):
+                 time_steps: int = 20000):
     # setup
     lx, ly = lattice_grid_shape
     omega = np.reciprocal(3 * kinematic_viscosity + 0.5)
@@ -635,9 +635,6 @@ def scaling_test(folder_name: str,
 
     density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((n_local_x + 2, n_local_y + 2), inlet_velocity)
     f = equilibrium_distr_func(density, velocity)
-    process_coord, px, py = global_coord_to_local_coord(coords2d, p_coords[0], p_coords[1], lx, ly, x_size, y_size)
-    if process_coord is not None:
-        vel_at_p = [np.linalg.norm(velocity[px, py, ...])]
 
     bound_func = parallel_von_karman_boundary_conditions(coords2d, n_local_x, n_local_y, lx, ly, x_size, y_size,
                                                          inlet_density, inlet_velocity, plate_size)

@@ -68,7 +68,7 @@ def main():
             inlet_vel = re * 0.04 / 40
             x_strouhal(folder_name='reynold_strouhal', inlet_velocity=inlet_vel)
     elif args.function == "nx_strouhal":
-        lxs = np.linspace(100, 1000, 10)
+        lxs = [100, 250, 500, 750, 1000, 1250]
         ly = 180
         for lx in lxs:
             x_strouhal(folder_name='nx_strouhal', lattice_grid_shape=(lx, ly))
