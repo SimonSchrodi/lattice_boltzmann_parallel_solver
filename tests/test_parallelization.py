@@ -112,7 +112,6 @@ def run_test():
             f_gather = np.stack(f_gather, axis=-1)
             f_test = np.load(r'./tests/von_karman_vortex_shedding/f_' + str(i) + '.npy')
             assert f_gather.shape == f_test.shape
-            print(np.unique(f_gather == f_test, return_counts=True))
             assert np.allclose(f_gather, f_test)
 
 if __name__ == "__main__":
