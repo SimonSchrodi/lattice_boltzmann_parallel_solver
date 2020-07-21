@@ -64,8 +64,8 @@ def main():
     elif args.function == "reynold_strouhal":
         reynolds_numbers = [40, 70, 100, 140, 170, 200]
         for re in reynolds_numbers:
-            inlet_vel = re * 0.04 / 40
-            x_strouhal(folder_name='reynold_strouhal', inlet_velocity=inlet_vel)
+            visc = 40 * 0.1 / re
+            x_strouhal(folder_name='reynold_strouhal', kinematic_viscosity=visc)
     elif args.function == "nx_strouhal":
         lxs = [100, 250, 500, 750, 1000, 1250]
         ly = 180
