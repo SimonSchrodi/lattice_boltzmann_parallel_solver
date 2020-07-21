@@ -1,9 +1,9 @@
 import numpy as np
 
-from lattice_boltzman_equation import vel_to_opp_vel_mapping, get_velocity_sets, get_w_i, equilibrium_distr_func
+from lattice_boltzman_equation import vel_to_opp_vel_mapping, get_velocity_sets, get_w_i, equilibrium_distr_func, \
+    streaming
 
 from typing import Callable, Tuple
-import operator
 
 
 def get_wall_indices(boundary: np.ndarray) -> np.ndarray:
@@ -105,7 +105,7 @@ def rigid_object(boundary: np.ndarray) -> Callable[[np.ndarray, np.ndarray], np.
     return bc
 
 
-def moving_wall(boundary: np.ndarray, u_w: np.ndarray, density: np.ndarray) \
+def moving_wall(boundary: np.ndarray, u_w: np.ndarray, avg_density: np.ndarray) \
         -> Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray]:
     """
     Returns anonymous function implementing moving wall
@@ -121,7 +121,6 @@ def moving_wall(boundary: np.ndarray, u_w: np.ndarray, density: np.ndarray) \
     mapping = vel_to_opp_vel_mapping()
     c_i = get_velocity_sets()
     w_i = get_w_i()
-    avg_density = np.mean(density)
     change_directions = get_wall_indices(boundary)
 
     def bc(f_pre_streaming: np.ndarray, f_post_streaming: np.ndarray) -> np.ndarray:
@@ -194,10 +193,17 @@ def periodic_with_pressure_variations(boundary: np.ndarray, p_in: float, p_out: 
 
         f_eq = equilibrium_distr_func(density, velocity)
         f_eq_in = equilibrium_distr_func(density_in, velocity[-2, ...]).squeeze()
-        f_post_streaming[0, ..., change_directions_1] = f_eq_in[..., change_directions_1].T + (
+        f_pre_streaming[0, ..., change_directions_1] = f_eq_in[..., change_directions_1].T + (
                 f_pre_streaming[-2, ..., change_directions_1] - f_eq[-2, ..., change_directions_1])
 
         f_eq_out = equilibrium_distr_func(density_out, velocity[1, ...]).squeeze()
+        f_pre_streaming[-1, ..., change_directions_2] = f_eq_out[..., change_directions_2].T + (
+                f_pre_streaming[1, ..., change_directions_2] - f_eq[1, ..., change_directions_2])
+
+        f_post_streaming = streaming(f_pre_streaming)
+
+        f_post_streaming[0, ..., change_directions_1] = f_eq_in[..., change_directions_1].T + (
+                f_pre_streaming[-2, ..., change_directions_1] - f_eq[-2, ..., change_directions_1])
         f_post_streaming[-1, ..., change_directions_2] = f_eq_out[..., change_directions_2].T + (
                 f_pre_streaming[1, ..., change_directions_2] - f_eq[1, ..., change_directions_2])
 

@@ -182,8 +182,8 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
     velocities = [velocity]
-    boundary_func = couette_flow_boundary_conditions(lx, ly, U)
-    for i in trange(time_steps):
+    boundary_func = couette_flow_boundary_conditions(lx, ly, U, np.mean(density))
+    for _ in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary_func)
         velocities.append(velocity)
 
@@ -244,10 +244,10 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
     assert U <= 1 / np.sqrt(3)
     lx, ly = lattice_grid_shape
 
-    boundary_func = couette_flow_boundary_conditions(lx, ly, U)
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
-    for i in trange(time_steps):
+    boundary_func = couette_flow_boundary_conditions(lx, ly, U, np.mean(density))
+    for _ in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary_func)
     vx = velocity[..., 0]
 
@@ -306,7 +306,7 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
 def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200, 60),
                                      omega: float = 1.5,
                                      delta_p: float = 0.001,
-                                     time_steps: int = 20000):
+                                     time_steps: int = 40000):
     lx, ly = lattice_grid_shape
 
     rho_0 = 1
@@ -320,7 +320,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
 
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
-    for i in trange(time_steps):
+    for _ in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary_func)
 
     vx = velocity[..., 0]
@@ -331,9 +331,9 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
     colors = ['cyan', 'blue']
     linestyle = [':', '-.']
     for c, ls, x_coord in zip(colors, linestyle, x_coords):
-        # for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
-        #     origin = [0, y_coord]
-        #     plt.quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1, headwidth=3, width=0.0025)
+        for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
+            origin = [0, y_coord]
+            plt.quiver(*origin, *[vec, 0.0], color=c, scale_units='xy', scale=1, headwidth=3, width=0.0025)
         plt.plot(vx[x_coord, :], np.arange(0, ly), label='Sim. sol. channel ' + str(x_coord), linewidth=1, c=c,
                  linestyle=ls)
         areas.append(
@@ -414,7 +414,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
         )
     a, b, c = popt
     analytical_points = [a * ((x + 0.5) ** 2) + b * (x + 0.5) + c for x in np.arange(0, ly)]
-    simulated_points = vx[int(lx / 2), :]
+    simulated_points = vx[int(lx // 2), :]
     relative_error = np.abs(analytical_points - simulated_points) / analytical_points
     plt.plot(np.arange(0, ly), relative_error * 100)
 
@@ -430,7 +430,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
 def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 30),
                                    omega: float = 1.5,
                                    delta_p: float = 0.001111,
-                                   time_steps: int = 5000,
+                                   time_steps: int = 10000,
                                    number_of_visualizations: int = 30):
     assert number_of_visualizations % 5 == 0
 
@@ -450,7 +450,7 @@ def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 3
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
     velocities = [velocity]
-    for i in trange(time_steps):
+    for _ in trange(time_steps):
         f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary_func)
         velocities.append(velocity)
 
@@ -466,13 +466,13 @@ def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 3
         if i % int(time_steps / (number_of_visualizations - 1)) == 0:
             vx = velocity[..., 0]
 
+            ax[row_index, col_index].plot(uy, y - 0.5, label='Analyt. sol.', c='red', linewidth=0.5)
             for vec, y_coord in zip(vx[x_coord, :], np.arange(0, ly)):
                 origin = [0, y_coord]
                 ax[row_index, col_index].quiver(*origin, *[vec, 0.0], color='blue', scale_units='xy', scale=1,
                                                 headwidth=3, width=0.0025)
             ax[row_index, col_index].plot(vx[x_coord, :], np.arange(0, ly), label='Sim. sol.', linewidth=1, c='blue',
                                           linestyle=':')
-            ax[row_index, col_index].plot(uy, y - 0.5, label='Analyt. sol.', c='red', linestyle='--')
 
             if i == 0:
                 ax[row_index, col_index].set_title('initial')
