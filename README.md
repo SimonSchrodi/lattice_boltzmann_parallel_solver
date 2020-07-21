@@ -11,18 +11,25 @@
 ### Poiseuille flow evolution
 ![Poiseuille flow](figures/poiseuille_flow/vel_vectors_evolution.svg)
 
+## How to build
+`make init`
+
 ## How to reproduce results
 - Shear wave decay
-  - `python src/main.py -f shear_wave_decay_density`
-  - `python src/main.py -f shear_wave_decay_velocity`
-  - `python src/main.py -f viscosity_vs_omega`
+  - `python src/main.py -f "shear_wave_decay_density"`
+  - `python src/main.py -f "shear_wave_decay_velocity"`
+  - `python src/main.py -f "viscosity_vs_omega"`
 - Couette flow
-  - `python src/main.py -f couette_vectors`
-  - `python src/main.py -f couette_evolution`
+  - `python src/main.py -f "couette_vectors"`
+  - `python src/main.py -f "couette_evolution"`
 - Poiseuille flow
-  - `python src/main.py -f poiseuille_vectors`
-  - `python src/main.py -f poiseuille_evolution`
+  - `python src/main.py -f "poiseuille_vectors"`
+  - `python src/main.py -f "poiseuille_evolution"`
 - von Karman vortex street
-  - `python src/main.py -f reynold_strouhal`
+  - `python src/main.py -f "reynold_strouhal"`
+  - `python src/main.py -f "nx_strouhal"`
+  - `python src/main.py -f "blockage_strouhal"`
 - scaling tests
-  - `python src/main.py -f scaling_test`
+  - `python src/main.py -f "scaling_test"`
+- pngs images to gif
+  - `python src/main.py -f "pngs_to_gif"`
