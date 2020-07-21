@@ -202,11 +202,6 @@ def periodic_with_pressure_variations(boundary: np.ndarray, p_in: float, p_out: 
 
         f_post_streaming = streaming(f_pre_streaming)
 
-        f_post_streaming[0, ..., change_directions_1] = f_eq_in[..., change_directions_1].T + (
-                f_pre_streaming[-2, ..., change_directions_1] - f_eq[-2, ..., change_directions_1])
-        f_post_streaming[-1, ..., change_directions_2] = f_eq_out[..., change_directions_2].T + (
-                f_pre_streaming[1, ..., change_directions_2] - f_eq[1, ..., change_directions_2])
-
         return f_post_streaming
 
     return bc
