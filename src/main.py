@@ -10,9 +10,7 @@ from experiments import \
      x_strouhal,
      scaling_test)
 
-from milestoneQuickFunctionCalls import milestone_7
-
-import numpy as np
+from visualizations_utils import pngs_to_gif
 
 import argparse
 
@@ -30,7 +28,8 @@ def main():
                                                                "reynold_strouhal",
                                                                "nx_strouhal",
                                                                "blockage_strouhal",
-                                                               "scaling_test"],
+                                                               "scaling_test",
+                                                               "pngs_to_gif"],
                         help="Which figure to generate")
     parser.add_argument("-lx", "--lx", type=int)
     parser.add_argument("-ly", "--ly", type=int)
@@ -82,6 +81,8 @@ def main():
             scaling_test(folder_name='scaling_test', lattice_grid_shape=(lx, ly))
         else:
             scaling_test(folder_name='scaling_test')
+    elif args.function == "pngs_to_gif":
+        pngs_to_gif()
     else:
         raise Exception('Unknown function')
 

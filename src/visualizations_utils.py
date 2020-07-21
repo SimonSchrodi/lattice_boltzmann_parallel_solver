@@ -1,10 +1,11 @@
-import matplotlib
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.pyplot import streamplot
-import typing
 from typing import Tuple
 import numpy as np
+from PIL import Image
+import glob
+import re
+import collections
 
 import matplotlib.cm as cm
 
@@ -70,3 +71,27 @@ def visualize_density_contour_plot(density: np.ndarray, lattice_grid_shape: Tupl
     plt.title('Contour Plot of Density Function')
     plt.colorbar()
     plt.show()
+
+
+def pngs_to_gif():
+    # Create the frames
+    frames = []
+    imgs = glob.glob(r"./figures/von_karman_vortex_shedding/all_png_parallel/*.png")
+    regex = re.compile(r'\d+')
+    numbers = [int(x) for img in imgs for x in regex.findall(img)]
+
+    img_dict = {
+        img: number for img, number in zip(imgs, numbers)
+    }
+
+    ordered_img_dict = collections.OrderedDict(sorted(img_dict.items(), key=lambda item: item[1]))
+
+    for img, _ in ordered_img_dict.items():
+        new_frame = Image.open(img)
+        frames.append(new_frame)
+
+    # Save into a GIF file that loops forever
+    frames[0].save('./figures/von_karman_vortex_shedding/png_to_gif.gif', format='GIF',
+                   append_images=frames[1:],
+                   save_all=True,
+                   duration=0.5, loop=0)
