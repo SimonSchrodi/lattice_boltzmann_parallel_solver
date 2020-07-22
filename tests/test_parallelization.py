@@ -32,59 +32,10 @@ def run_test():
     comm = MPI.COMM_WORLD
     x_size, y_size = get_xy_size(size)
 
-    cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[False, True], reorder=False)
+    cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[True, True], reorder=False)
     coords2d = cartesian2d.Get_coords(rank)
 
     n_local_x, n_local_y = get_local_coords(coords2d, lx, ly, x_size, y_size)
-
-    def boundary(coord2d, n_local_x, n_local_y):
-        def bc(f_pre_streaming, f_post_streaming, density=None, velocity=None, f_previous=None):
-            # inlet
-            if x_in_process(coord2d, 0, lx, x_size):
-                f_post_streaming[1:-1, 1:-1, :] = inlet((n_local_x, n_local_y), density_in, u0)(
-                    f_post_streaming.copy()[1:-1, 1:-1, :])
-
-            # outlet
-            if x_in_process(coord2d, lx - 1, lx, x_size) and x_in_process(coord2d, lx - 2, lx, x_size):
-                f_post_streaming[1:-1, 1:-1, :] = outlet()(f_previous.copy()[1:-1, 1:-1, :],
-                                                           f_post_streaming.copy()[1:-1, 1:-1, :])
-            elif x_in_process(coord2d, lx - 1, lx, x_size) or x_in_process(coord2d, lx - 2, lx, x_size):
-                # TODO communicate f_previous
-                raise NotImplementedError
-
-            # plate boundary condition
-            y_min, y_max = ly // 2 - d // 2 + 1, ly // 2 + d // 2 - 1
-            if x_in_process(coord2d, lx // 4, lx, x_size):  # left side
-                local_x = global_to_local_direction(coord2d[0], lx // 4, lx, x_size)
-                for y in range(y_min, y_max):
-                    if y_in_process(coord2d, y, ly, y_size):
-                        local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
-                        f_post_streaming[local_x, local_y, [3, 7, 6]] = f_pre_streaming[local_x, local_y, [1, 5, 8]]
-
-                if y_in_process(coord2d, ly // 2 + d // 2 - 1, ly, y_size):  # left side upper corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 + d // 2 - 1, ly, y_size)
-                    f_post_streaming[local_x, local_y, [3, 6]] = f_pre_streaming[local_x, local_y, [1, 8]]
-                if y_in_process(coord2d, ly // 2 - d // 2, ly, y_size):  # left side lower corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 - d // 2, ly, y_size)
-                    f_post_streaming[local_x, local_y, [3, 7]] = f_pre_streaming[local_x, local_y, [1, 5]]
-
-            if x_in_process(coord2d, lx // 4 + 1, lx, x_size):  # right side
-                local_x = global_to_local_direction(coord2d[0], lx // 4 + 1, lx, x_size)
-                for y in range(y_min, y_max):
-                    if y_in_process(coord2d, y, ly, y_size):
-                        local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
-                        f_post_streaming[local_x, local_y, [1, 5, 8]] = f_pre_streaming[local_x, local_y, [3, 7, 6]]
-
-                if y_in_process(coord2d, ly // 2 + d // 2 - 1, ly, y_size):  # right side upper corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 + d // 2 - 1, ly, y_size)
-                    f_post_streaming[local_x, local_y, [1, 5]] = f_pre_streaming[local_x, local_y, [3, 7]]
-                if y_in_process(coord2d, ly // 2 - d // 2, ly, y_size):  # right side lower corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 - d // 2, ly, y_size)
-                    f_post_streaming[local_x, local_y, [1, 8]] = f_pre_streaming[local_x, local_y, [3, 6]]
-
-            return f_post_streaming
-
-        return bc
 
     density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((n_local_x + 2, n_local_y + 2), u0)
     f = equilibrium_distr_func(density, velocity)
