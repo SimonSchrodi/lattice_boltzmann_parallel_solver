@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from PIL import Image
@@ -24,6 +25,17 @@ from boundary_utils import couette_flow_boundary_conditions, poiseuille_flow_bou
     parallel_von_karman_boundary_conditions
 
 from boundary_conditions import inlet, outlet
+
+matplotlib.use('pgf')
+matplotlib.rcParams.update({
+    "pgf.texsystem": "pdflatex",
+    'font.family': 'serif',
+    'text.usetex': True,
+    'pgf.rcfonts': False,
+    'pgf.preamble': [r'\usepackage[utf8x]{inputenc}',
+                     r'\usepackage{amsmath}']
+}
+)
 
 
 def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
@@ -56,10 +68,9 @@ def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
             if row_index == 4:
                 break
 
-    plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
     fig.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9,
                         wspace=0.75, hspace=0.5)
+    plt.savefig(r'./figures/shear_wave_decay/evolution_density_surface.pgf')
     plt.savefig(r'./figures/shear_wave_decay/evolution_density_surface.svg')
 
 
@@ -92,10 +103,9 @@ def plot_evolution_of_velocity(lattice_grid_shape: Tuple[int, int] = (50, 50),
             if row_index == 4:
                 break
 
-    plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
     fig.subplots_adjust(left=0.125, right=0.9, bottom=0.1, top=0.9,
                         wspace=0.75, hspace=0.5)
+    plt.savefig(r'./figures/shear_wave_decay/evolution_velocity_surface.pgf')
     plt.savefig(r'./figures/shear_wave_decay/evolution_velocity_surface.svg')
 
 
@@ -103,7 +113,7 @@ def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 
                                      initial_p0: float = 0.5,
                                      epsilon_p: float = 0.08,
                                      epsilon_v: float = 0.08,
-                                     time_steps: int = 2000,
+                                     time_steps: int = 2500,
                                      omega_discretization: int = 50):
     fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
     omega = np.linspace(0.01, 1.99, omega_discretization)
@@ -111,7 +121,7 @@ def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 
     initial_distr_funcs = [sinusoidal_density_x(lattice_grid_shape, initial_p0, epsilon_p),
                            sinusoidal_velocity_x(lattice_grid_shape, epsilon_v)]
 
-    for i, initial in enumerate(initial_distr_funcs):
+    for i, initial in enumerate(tqdm(initial_distr_funcs)):
         viscosity_sim = []
         viscosity_true = []
         for om in tqdm(omega):
@@ -159,13 +169,11 @@ def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 
         ax[i].legend()
         ax[i].set_yscale('log')
         ax[i].set_title("Sinusoidal Density" if i == 0 else "Sinusoidal Velocity")
-        ax[i].set_xlabel('omega')
-        ax[i].set_ylabel(r'viscosity $\nu$ [$\frac{m²}{s}$]')
-
-    plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
+        ax[i].set_xlabel(r'relaxation parameter $\omega$')
+        ax[i].set_ylabel(r'viscosity $\nu$ [$\frac{lu²}{s}$]')
 
     plt.savefig(r'./figures/shear_wave_decay/meas_visc_vs_omega.svg')
+    plt.savefig(r'./figures/shear_wave_decay/meas_visc_vs_omega.pgf')
 
 
 def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
@@ -232,10 +240,8 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
                         wspace=0.75, hspace=1.5)
     plt.subplots_adjust(right=0.77)
 
-    plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
-
     plt.savefig(r'./figures/couette_flow/vel_vectors_evolution.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/couette_flow/vel_vectors_evolution.pgf', bbox_inches='tight')
 
 
 def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30),
@@ -268,10 +274,8 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
     plt.xlabel(r'velocity in y-direction $u$ [$\frac{lu}{s}$]')
     plt.legend()
 
-    plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
-
     plt.savefig(r'./figures/couette_flow/vel_vectors.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/couette_flow/vel_vectors.pgf', bbox_inches='tight')
 
     plt.close()
 
@@ -298,10 +302,8 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
     plt.xlabel(r'y position [lu]')
     plt.ylabel(r'relative error [\%]')
 
-    plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
-
     plt.savefig(r'./figures/couette_flow/relative_error.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/couette_flow/relative_error.pgf', bbox_inches='tight')
 
 
 def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200, 60),
@@ -366,10 +368,8 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
         plt.legend(by_label.values(), by_label.keys())
         plt.legend(by_label.values(), by_label.keys(), loc='lower right')
 
-        plt.rc('text', usetex=True)
-        plt.rc('font', family='serif')
-
         plt.savefig(r'./figures/poiseuille_flow/vel_vectors.svg', bbox_inches='tight')
+        plt.savefig(r'./figures/poiseuille_flow/vel_vectors.pgf', bbox_inches='tight')
 
     plt.close()
 
@@ -395,10 +395,8 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
     plt.ylabel(r'pressure along centerline $p$ [$Pa$]')
     plt.legend()
 
-    plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
-
     plt.savefig(r'./figures/poiseuille_flow/density_along_centerline.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/poiseuille_flow/density_along_centerline.pgf', bbox_inches='tight')
 
     plt.close()
 
@@ -422,10 +420,8 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
     plt.xlabel(r'y position [lu]')
     plt.ylabel(r'relative error [\%]')
 
-    plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
-
     plt.savefig(r'./figures/poiseuille_flow/relative_error.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/poiseuille_flow/relative_error.pgf', bbox_inches='tight')
 
 
 def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 30),
@@ -491,10 +487,8 @@ def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 3
                         wspace=0.75, hspace=1.5)
     plt.subplots_adjust(right=0.77)
 
-    plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
-
     plt.savefig(r'./figures/poiseuille_flow/vel_vectors_evolution.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/poiseuille_flow/vel_vectors_evolution.pgf', bbox_inches='tight')
 
 
 def plot_parallel_von_karman_vortex_street(lattice_grid_shape: Tuple[int, int] = (420, 180),
