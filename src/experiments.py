@@ -514,7 +514,7 @@ def plot_parallel_von_karman_vortex_street(lattice_grid_shape: Tuple[int, int] =
     comm = MPI.COMM_WORLD
     x_size, y_size = get_xy_size(size)
 
-    cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[True, True], reorder=False)
+    cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[False, True], reorder=False)
     coords2d = cartesian2d.Get_coords(rank)
 
     n_local_x, n_local_y = get_local_coords(coords2d, lx, ly, x_size, y_size)
@@ -569,7 +569,7 @@ def x_strouhal(folder_name: str,
     comm = MPI.COMM_WORLD
     x_size, y_size = get_xy_size(size)
 
-    cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[True, True], reorder=False)
+    cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[False, True], reorder=False)
     coords2d = cartesian2d.Get_coords(rank)
 
     n_local_x, n_local_y = get_local_coords(coords2d, lx, ly, x_size, y_size)
@@ -627,7 +627,7 @@ def scaling_test(folder_name: str,
     comm = MPI.COMM_WORLD
     x_size, y_size = get_xy_size(size)
 
-    cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[True, True], reorder=False)
+    cartesian2d = comm.Create_cart(dims=[x_size, y_size], periods=[False, True], reorder=False)
     coords2d = cartesian2d.Get_coords(rank)
 
     n_local_x, n_local_y = get_local_coords(coords2d, lx, ly, x_size, y_size)
