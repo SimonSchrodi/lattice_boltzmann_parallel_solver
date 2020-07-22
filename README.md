@@ -11,6 +11,21 @@
 ### Poiseuille flow evolution
 ![Poiseuille flow](figures/poiseuille_flow/vel_vectors_evolution.svg)
 
+## High-level structure
+The code is organized as follows:
+- ![documentation](documentation) contains the report
+- ![figures](figures) contains figures from our experiments
+- ![src](src) contains the main part of the code
+  - ![src/boundary_conditions.py](src/boundary_conditions.py) implements several boundary conditions
+  - ![src/boundary_utils.py](src/boundary_utils) plugs specific combinations of boundary conditions together
+  - ![src/experiments.py](src/experiments.py) contains functions to run the experiments
+  - ![src/initial_values.py](src/initial_values.py) contains initial value specifications
+  - ![src/lattice_boltzmann_method.py](src/lattice_boltzmann_method.py) implements the basic ingredients of the LBM
+  - ![src/main.py](src/main.py) calls the experiments specified by the command arguments
+  - ![src/parallelization_utils.py](src/parallelization_utils.py) implements essential parts of the parallel communication
+  - ![src/visualizations_utils.py](src/visualizations_utils.py) contains several helper functions for visualizations
+- ![tests](tests) contains several unit tests for Travis CI
+
 ## How to build
 `make init`
 
