@@ -2,20 +2,41 @@ import numpy as np
 from typing import Tuple
 
 
-def milestone_2_test_1_initial_val(lattice_grid_shape: Tuple[int, int]):
+def milestone_2_test_1_initial_val(lattice_grid_shape: Tuple[int, int]) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Return initial conditions
+
+    Args:
+        lattice_grid_shape: lattice grid [lx, ly]
+
+    Returns:
+        density with 0.5, but one peak in the middle, velocities 0
+
+    """
     density = np.ones(lattice_grid_shape) * 0.5
     density[lattice_grid_shape[0] / 2, lattice_grid_shape[1] / 2] = 0.6
     velocity = np.ones(lattice_grid_shape) * 0.0
     return density, velocity
 
 
-def milestone_2_test_2_initial_val(lattice_grid_shape: Tuple[int, int]):
+def milestone_2_test_2_initial_val(lattice_grid_shape: Tuple[int, int]) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Return initial conditions
+
+    Args:
+        lattice_grid_shape: lattice grid [lx, ly]
+
+    Returns:
+        random density and velocities
+
+    """
     density = np.random.uniform(0, 1, lattice_grid_shape)
     velocity = np.random.uniform(-0.1, 0.1, lattice_grid_shape + (2,))
     return density, velocity
 
 
-def sinusoidal_density_x(lattice_grid_shape: Tuple[int, int], initial_p0: float, epsilon: float):
+def sinusoidal_density_x(lattice_grid_shape: Tuple[int, int], initial_p0: float, epsilon: float) \
+        -> Tuple[np.ndarray, np.ndarray]:
     """
     Return initial values according to p(r,0)=p_0+eps*sin(2*PI*x/lx) and u(r,0) = 0
 
@@ -43,7 +64,8 @@ def sinusoidal_density_x(lattice_grid_shape: Tuple[int, int], initial_p0: float,
     return rho, u
 
 
-def sinusoidal_velocity_x(lattice_grid_shape: Tuple[int, int], epsilon: float):
+def sinusoidal_velocity_x(lattice_grid_shape: Tuple[int, int], epsilon: float) \
+        -> Tuple[np.ndarray, np.ndarray]:
     """
     Return initial values according to p(r,0)=1 and u(r,0) = eps*sin(2*PI*y/ly)
 
@@ -74,6 +96,7 @@ def sinusoidal_velocity_x(lattice_grid_shape: Tuple[int, int], epsilon: float):
 def density_1_velocity_0_initial(lattice_grid_shape: Tuple[int, int]):
     """
     Returns density with 1s and velocity with 0s
+
     Args:
         lattice_grid_shape: lattice grid size
 
@@ -83,7 +106,17 @@ def density_1_velocity_0_initial(lattice_grid_shape: Tuple[int, int]):
     return np.ones(lattice_grid_shape), np.zeros(lattice_grid_shape + (2,))
 
 
-def density_1_velocity_x_u0_velocity_y_0_initial(lattice_grid_shape: Tuple[int, int], u0: float):
+def density_1_velocity_x_u0_velocity_y_0_initial(lattice_grid_shape: Tuple[int, int], u0: float) \
+        -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Returns initial conditions
+    Args:
+        lattice_grid_shape: lattice grid size
+        u0: initial velocity
+
+    Returns: density with ones, velocity with u0 in x direction and 0 in y direction
+
+    """
     u = np.empty(lattice_grid_shape + (2,))
     u[..., 0] = u0
     u[..., 1] = 0

@@ -549,10 +549,10 @@ def plot_parallel_von_karman_vortex_street(lattice_grid_shape: Tuple[int, int] =
                         local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
                         f_post_streaming[local_x, local_y, [3, 7, 6]] = f_pre_streaming[local_x, local_y, [1, 5, 8]]
 
-                if y_in_process(coord2d, ly // 2 + d // 2 - 1, ly, y_size):  # left side upper corner
+                if y_in_process(coord2d, ly // 2 + plate_size // 2 - 1, ly, y_size):  # left side upper corner
                     local_y = global_to_local_direction(coord2d[1], ly // 2 + plate_size // 2 - 1, ly, y_size)
                     f_post_streaming[local_x, local_y, [3, 6]] = f_pre_streaming[local_x, local_y, [1, 8]]
-                if y_in_process(coord2d, ly // 2 - d // 2, ly, y_size):  # left side lower corner
+                if y_in_process(coord2d, ly // 2 - plate_size // 2, ly, y_size):  # left side lower corner
                     local_y = global_to_local_direction(coord2d[1], ly // 2 - plate_size // 2, ly, y_size)
                     f_post_streaming[local_x, local_y, [3, 7]] = f_pre_streaming[local_x, local_y, [1, 5]]
 
@@ -651,10 +651,10 @@ def x_strouhal(folder_name: str,
                         local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
                         f_post_streaming[local_x, local_y, [3, 7, 6]] = f_pre_streaming[local_x, local_y, [1, 5, 8]]
 
-                if y_in_process(coord2d, ly // 2 + d // 2 - 1, ly, y_size):  # left side upper corner
+                if y_in_process(coord2d, ly // 2 + plate_size // 2 - 1, ly, y_size):  # left side upper corner
                     local_y = global_to_local_direction(coord2d[1], ly // 2 + plate_size // 2 - 1, ly, y_size)
                     f_post_streaming[local_x, local_y, [3, 6]] = f_pre_streaming[local_x, local_y, [1, 8]]
-                if y_in_process(coord2d, ly // 2 - d // 2, ly, y_size):  # left side lower corner
+                if y_in_process(coord2d, ly // 2 - plate_size // 2, ly, y_size):  # left side lower corner
                     local_y = global_to_local_direction(coord2d[1], ly // 2 - plate_size // 2, ly, y_size)
                     f_post_streaming[local_x, local_y, [3, 7]] = f_pre_streaming[local_x, local_y, [1, 5]]
 
@@ -755,10 +755,10 @@ def scaling_test(folder_name: str,
                         local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
                         f_post_streaming[local_x, local_y, [3, 7, 6]] = f_pre_streaming[local_x, local_y, [1, 5, 8]]
 
-                if y_in_process(coord2d, ly // 2 + d // 2 - 1, ly, y_size):  # left side upper corner
+                if y_in_process(coord2d, ly // 2 + plate_size // 2 - 1, ly, y_size):  # left side upper corner
                     local_y = global_to_local_direction(coord2d[1], ly // 2 + plate_size // 2 - 1, ly, y_size)
                     f_post_streaming[local_x, local_y, [3, 6]] = f_pre_streaming[local_x, local_y, [1, 8]]
-                if y_in_process(coord2d, ly // 2 - d // 2, ly, y_size):  # left side lower corner
+                if y_in_process(coord2d, ly // 2 - plate_size // 2, ly, y_size):  # left side lower corner
                     local_y = global_to_local_direction(coord2d[1], ly // 2 - plate_size // 2, ly, y_size)
                     f_post_streaming[local_x, local_y, [3, 7]] = f_pre_streaming[local_x, local_y, [1, 5]]
 

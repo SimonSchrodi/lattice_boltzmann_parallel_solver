@@ -7,8 +7,8 @@ from mpi4py import MPI
 
 import os
 
-from lattice_boltzman_equation import compute_density, compute_velocity_field, streaming, equilibrium_distr_func, \
-    lattice_boltzman_step, reynolds_number, strouhal_number
+from lattice_boltzmann_method import compute_density, compute_velocity_field, streaming, equilibrium_distr_func, \
+    lattice_boltzmann_step, reynolds_number, strouhal_number
 from visualizations_utils import visualize_velocity_quiver, visualize_velocity_streamplot, \
     visualize_density_contour_plot, visualize_density_surface_plot
 
@@ -44,7 +44,7 @@ def milestone_2_test_1():
     density, velocity = milestone_2_test_1_initial_val((lx, ly))
     f = equilibrium_distr_func(density, velocity, 9)
     for i in trange(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
+        f, density, velocity = lattice_boltzmann_step(f, density, velocity, omega)
     visualize_density_surface_plot(density, (lx, ly))
 
 
@@ -56,7 +56,7 @@ def milestone_2_test_2():
     density, velocity = milestone_2_test_2_initial_val((lx, ly))
     f = equilibrium_distr_func(density, velocity)
     for i in trange(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
+        f, density, velocity = lattice_boltzmann_step(f, density, velocity, omega)
     visualize_density_surface_plot(density, (lx, ly))
 
 
@@ -72,7 +72,7 @@ def milestone_3_test_1():
     # visualize_density_surface_plot(density, (lx, ly))
     dens = []
     for i in trange(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
+        f, density, velocity = lattice_boltzmann_step(f, density, velocity, omega)
         den_min = np.amin(density)
         den_max = np.amax(density)
         dens.append(
@@ -119,7 +119,7 @@ def milestone_3_test_2():
     # visualize_density_surface_plot(velocity[..., 1], (lx, ly))
     vels = []
     for i in trange(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega)
+        f, density, velocity = lattice_boltzmann_step(f, density, velocity, omega)
         # if i % 100 == 0:
         #    visualize_density_surface_plot(velocity[..., 0], (lx, ly))
         # visualize_velocity_field(velocity, (50, 50))
@@ -164,7 +164,7 @@ def milestone_4():
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
     for i in trange(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+        f, density, velocity = lattice_boltzmann_step(f, density, velocity, omega, boundary)
     vx = velocity[..., 0]
 
     for vec, y_coord in zip(vx[25, :], np.arange(0, ly)):
@@ -217,7 +217,7 @@ def milestone_5():
     density, velocity = density_1_velocity_0_initial((lx, ly))
     f = equilibrium_distr_func(density, velocity)
     for i in trange(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+        f, density, velocity = lattice_boltzmann_step(f, density, velocity, omega, boundary)
 
     vx = velocity[..., 0]
     print(np.amax(velocity))
@@ -280,7 +280,7 @@ def milestone_6():
     f = equilibrium_distr_func(density, velocity)
     vel_at_p = [np.linalg.norm(velocity[p_coords[0], p_coords[1], ...])]
     for i in trange(time_steps):
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, boundary)
+        f, density, velocity = lattice_boltzmann_step(f, density, velocity, omega, boundary)
         vel_at_p.append(np.linalg.norm(velocity[p_coords[0], p_coords[1], ...]))
 
         np.save(r'../tests/von_karman_vortex_shedding/f_' + str(i) + '.npy', f)
@@ -416,7 +416,7 @@ def milestone_7():
     for i in range(time_steps):
         if rank == 0:
             pbar.update(1)
-        f, density, velocity = lattice_boltzman_step(f, density, velocity, omega, bound_func, communication_func)
+        f, density, velocity = lattice_boltzmann_step(f, density, velocity, omega, bound_func, communication_func)
         if process_coord is not None:
             vel_at_p.append(np.linalg.norm(velocity[px, py, ...]))
 

@@ -16,6 +16,9 @@ import argparse
 
 
 def main():
+    """
+    Main function directing command line arguments to experiments/plotting utilities
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--function", type=str, choices=["shear_wave_decay_velocity",
                                                                "shear_wave_decay_density",

@@ -12,6 +12,14 @@ import matplotlib.cm as cm
 
 
 def visualize_velocity_streamplot(velocity_field: np.ndarray, lattice_grid_shape: Tuple[int, int]):
+    """
+    Visualizies the velocity as streamplot
+
+    Args:
+        velocity_field: velocity
+        lattice_grid_shape: lattice grid shape, e.g. [10,10]
+
+    """
     assert velocity_field.shape[-1] == 2
     y, x = np.mgrid[0:lattice_grid_shape[0], 0:lattice_grid_shape[1]]
     streamplot(
@@ -29,6 +37,14 @@ def visualize_velocity_streamplot(velocity_field: np.ndarray, lattice_grid_shape
 
 
 def visualize_velocity_quiver(velocity_field: np.ndarray, lattice_grid_shape: Tuple[int, int]):
+    """
+    Visualizies the velocity as quiver
+
+    Args:
+        velocity_field: velocity
+        lattice_grid_shape: lattice grid shape, e.g. [10,10]
+
+    """
     assert velocity_field.shape[-1] == 2
     y, x = np.mgrid[0:lattice_grid_shape[0], 0:lattice_grid_shape[1]]
     plt.quiver(
@@ -43,6 +59,15 @@ def visualize_velocity_quiver(velocity_field: np.ndarray, lattice_grid_shape: Tu
 
 
 def visualize_density_surface_plot(density: np.ndarray, lattice_grid_shape: Tuple[int, int], cmap='seismic'):
+    """
+    Visualizies the density as surface plot
+
+    Args:
+        density: density function
+        lattice_grid_shape: lattice grid shape, e.g. [10,10]
+        cmap: color map
+
+    """
     y, x = np.mgrid[0:lattice_grid_shape[0], 0:lattice_grid_shape[1]]
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -59,6 +84,7 @@ def visualize_density_surface_plot(density: np.ndarray, lattice_grid_shape: Tupl
 def visualize_density_contour_plot(density: np.ndarray, lattice_grid_shape: Tuple[int, int], cmap='seismic'):
     """
     Visualizies the density as contour plot
+
     Args:
         density: density function
         lattice_grid_shape: lattice grid shape, e.g. [10,10]
@@ -75,6 +101,9 @@ def visualize_density_contour_plot(density: np.ndarray, lattice_grid_shape: Tupl
 
 
 def pngs_to_gif():
+    """
+    Creates gif for the von karman vortex street given the saved pngs
+    """
     # Create the frames
     frames = []
     imgs = glob.glob(r"./figures/von_karman_vortex_shedding/all_png_parallel/*.png")
