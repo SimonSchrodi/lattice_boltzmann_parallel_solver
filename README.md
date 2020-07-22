@@ -30,6 +30,6 @@
   - `python src/main.py -f "nx_strouhal"`
   - `python src/main.py -f "blockage_strouhal"`
 - scaling tests
-  - `python src/main.py -f "scaling_test"`
+  - `mpirun -N 4 python src/main.py -f "scaling_test"`
 - pngs images to gif
   - `python src/main.py -f "pngs_to_gif"`
