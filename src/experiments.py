@@ -525,55 +525,8 @@ def plot_parallel_von_karman_vortex_street(lattice_grid_shape: Tuple[int, int] =
     if process_coord is not None:
         vel_at_p = [np.linalg.norm(velocity[px, py, ...])]
 
-    def boundary(coord2d, n_local_x, n_local_y):
-        def bc(f_pre_streaming, f_post_streaming, density=None, velocity=None, f_previous=None):
-            # inlet
-            if x_in_process(coord2d, 0, lx, x_size):
-                f_post_streaming[1:-1, 1:-1, :] = inlet((n_local_x, n_local_y), inlet_density, inlet_velocity)(
-                    f_post_streaming.copy()[1:-1, 1:-1, :])
-
-            # outlet
-            if x_in_process(coord2d, lx - 1, lx, x_size) and x_in_process(coord2d, lx - 2, lx, x_size):
-                f_post_streaming[1:-1, 1:-1, :] = outlet()(f_previous.copy()[1:-1, 1:-1, :],
-                                                           f_post_streaming.copy()[1:-1, 1:-1, :])
-            elif x_in_process(coord2d, lx - 1, lx, x_size) or x_in_process(coord2d, lx - 2, lx, x_size):
-                # TODO communicate f_previous
-                raise NotImplementedError
-
-            # plate boundary condition
-            y_min, y_max = ly // 2 - plate_size // 2 + 1, ly // 2 + plate_size // 2 - 1
-            if x_in_process(coord2d, lx // 4, lx, x_size):  # left side
-                local_x = global_to_local_direction(coord2d[0], lx // 4, lx, x_size)
-                for y in range(y_min, y_max):
-                    if y_in_process(coord2d, y, ly, y_size):
-                        local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
-                        f_post_streaming[local_x, local_y, [3, 7, 6]] = f_pre_streaming[local_x, local_y, [1, 5, 8]]
-
-                if y_in_process(coord2d, ly // 2 + plate_size // 2 - 1, ly, y_size):  # left side upper corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 + plate_size // 2 - 1, ly, y_size)
-                    f_post_streaming[local_x, local_y, [3, 6]] = f_pre_streaming[local_x, local_y, [1, 8]]
-                if y_in_process(coord2d, ly // 2 - plate_size // 2, ly, y_size):  # left side lower corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 - plate_size // 2, ly, y_size)
-                    f_post_streaming[local_x, local_y, [3, 7]] = f_pre_streaming[local_x, local_y, [1, 5]]
-
-            if x_in_process(coord2d, lx // 4 + 1, lx, x_size):  # right side
-                local_x = global_to_local_direction(coord2d[0], lx // 4 + 1, lx, x_size)
-                for y in range(y_min, y_max):
-                    if y_in_process(coord2d, y, ly, y_size):
-                        local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
-                        f_post_streaming[local_x, local_y, [1, 5, 8]] = f_pre_streaming[local_x, local_y, [3, 7, 6]]
-
-                if y_in_process(coord2d, ly // 2 + plate_size // 2 - 1, ly, y_size):  # right side upper corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 + plate_size // 2 - 1, ly, y_size)
-                    f_post_streaming[local_x, local_y, [1, 5]] = f_pre_streaming[local_x, local_y, [3, 7]]
-                if y_in_process(coord2d, ly // 2 - plate_size // 2, ly, y_size):  # right side lower corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 - plate_size // 2, ly, y_size)
-                    f_post_streaming[local_x, local_y, [1, 8]] = f_pre_streaming[local_x, local_y, [3, 6]]
-
-            return f_post_streaming
-        return bc
-
-    bound_func = boundary(coords2d, n_local_x, n_local_y)
+    bound_func = parallel_von_karman_boundary_conditions(coords2d, n_local_x, n_local_y, lx, ly, x_size, y_size,
+                                                         inlet_density, inlet_velocity, plate_size)
     communication_func = communication(cartesian2d)
 
     # main loop
@@ -627,55 +580,8 @@ def x_strouhal(folder_name: str,
     if process_coord is not None:
         vel_at_p = [np.linalg.norm(velocity[px, py, ...])]
 
-    def boundary(coord2d, n_local_x, n_local_y):
-        def bc(f_pre_streaming, f_post_streaming, density=None, velocity=None, f_previous=None):
-            # inlet
-            if x_in_process(coord2d, 0, lx, x_size):
-                f_post_streaming[1:-1, 1:-1, :] = inlet((n_local_x, n_local_y), inlet_density, inlet_velocity)(
-                    f_post_streaming.copy()[1:-1, 1:-1, :])
-
-            # outlet
-            if x_in_process(coord2d, lx - 1, lx, x_size) and x_in_process(coord2d, lx - 2, lx, x_size):
-                f_post_streaming[1:-1, 1:-1, :] = outlet()(f_previous.copy()[1:-1, 1:-1, :],
-                                                           f_post_streaming.copy()[1:-1, 1:-1, :])
-            elif x_in_process(coord2d, lx - 1, lx, x_size) or x_in_process(coord2d, lx - 2, lx, x_size):
-                # TODO communicate f_previous
-                raise NotImplementedError
-
-            # plate boundary condition
-            y_min, y_max = ly // 2 - plate_size // 2 + 1, ly // 2 + plate_size // 2 - 1
-            if x_in_process(coord2d, lx // 4, lx, x_size):  # left side
-                local_x = global_to_local_direction(coord2d[0], lx // 4, lx, x_size)
-                for y in range(y_min, y_max):
-                    if y_in_process(coord2d, y, ly, y_size):
-                        local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
-                        f_post_streaming[local_x, local_y, [3, 7, 6]] = f_pre_streaming[local_x, local_y, [1, 5, 8]]
-
-                if y_in_process(coord2d, ly // 2 + plate_size // 2 - 1, ly, y_size):  # left side upper corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 + plate_size // 2 - 1, ly, y_size)
-                    f_post_streaming[local_x, local_y, [3, 6]] = f_pre_streaming[local_x, local_y, [1, 8]]
-                if y_in_process(coord2d, ly // 2 - plate_size // 2, ly, y_size):  # left side lower corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 - plate_size // 2, ly, y_size)
-                    f_post_streaming[local_x, local_y, [3, 7]] = f_pre_streaming[local_x, local_y, [1, 5]]
-
-            if x_in_process(coord2d, lx // 4 + 1, lx, x_size):  # right side
-                local_x = global_to_local_direction(coord2d[0], lx // 4 + 1, lx, x_size)
-                for y in range(y_min, y_max):
-                    if y_in_process(coord2d, y, ly, y_size):
-                        local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
-                        f_post_streaming[local_x, local_y, [1, 5, 8]] = f_pre_streaming[local_x, local_y, [3, 7, 6]]
-
-                if y_in_process(coord2d, ly // 2 + plate_size // 2 - 1, ly, y_size):  # right side upper corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 + plate_size // 2 - 1, ly, y_size)
-                    f_post_streaming[local_x, local_y, [1, 5]] = f_pre_streaming[local_x, local_y, [3, 7]]
-                if y_in_process(coord2d, ly // 2 - plate_size // 2, ly, y_size):  # right side lower corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 - plate_size // 2, ly, y_size)
-                    f_post_streaming[local_x, local_y, [1, 8]] = f_pre_streaming[local_x, local_y, [3, 6]]
-
-            return f_post_streaming
-        return bc
-
-    bound_func = boundary(coords2d, n_local_x, n_local_y)
+    bound_func = parallel_von_karman_boundary_conditions(coords2d, n_local_x, n_local_y, lx, ly, x_size, y_size,
+                                                         inlet_density, inlet_velocity, plate_size)
     communication_func = communication(cartesian2d)
 
     # main loop
@@ -716,8 +622,6 @@ def scaling_test(folder_name: str,
     lx, ly = lattice_grid_shape
     omega = np.reciprocal(3 * kinematic_viscosity + 0.5)
 
-    p_coords = [3 * lx // 4, ly // 2]
-
     size = MPI.COMM_WORLD.Get_size()
     rank = MPI.COMM_WORLD.Get_rank()
     comm = MPI.COMM_WORLD
@@ -731,55 +635,8 @@ def scaling_test(folder_name: str,
     density, velocity = density_1_velocity_x_u0_velocity_y_0_initial((n_local_x + 2, n_local_y + 2), inlet_velocity)
     f = equilibrium_distr_func(density, velocity)
 
-    def boundary(coord2d, n_local_x, n_local_y):
-        def bc(f_pre_streaming, f_post_streaming, density=None, velocity=None, f_previous=None):
-            # inlet
-            if x_in_process(coord2d, 0, lx, x_size):
-                f_post_streaming[1:-1, 1:-1, :] = inlet((n_local_x, n_local_y), inlet_density, inlet_velocity)(
-                    f_post_streaming.copy()[1:-1, 1:-1, :])
-
-            # outlet
-            if x_in_process(coord2d, lx - 1, lx, x_size) and x_in_process(coord2d, lx - 2, lx, x_size):
-                f_post_streaming[1:-1, 1:-1, :] = outlet()(f_previous.copy()[1:-1, 1:-1, :],
-                                                           f_post_streaming.copy()[1:-1, 1:-1, :])
-            elif x_in_process(coord2d, lx - 1, lx, x_size) or x_in_process(coord2d, lx - 2, lx, x_size):
-                # TODO communicate f_previous
-                raise NotImplementedError
-
-            # plate boundary condition
-            y_min, y_max = ly // 2 - plate_size // 2 + 1, ly // 2 + plate_size // 2 - 1
-            if x_in_process(coord2d, lx // 4, lx, x_size):  # left side
-                local_x = global_to_local_direction(coord2d[0], lx // 4, lx, x_size)
-                for y in range(y_min, y_max):
-                    if y_in_process(coord2d, y, ly, y_size):
-                        local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
-                        f_post_streaming[local_x, local_y, [3, 7, 6]] = f_pre_streaming[local_x, local_y, [1, 5, 8]]
-
-                if y_in_process(coord2d, ly // 2 + plate_size // 2 - 1, ly, y_size):  # left side upper corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 + plate_size // 2 - 1, ly, y_size)
-                    f_post_streaming[local_x, local_y, [3, 6]] = f_pre_streaming[local_x, local_y, [1, 8]]
-                if y_in_process(coord2d, ly // 2 - plate_size // 2, ly, y_size):  # left side lower corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 - plate_size // 2, ly, y_size)
-                    f_post_streaming[local_x, local_y, [3, 7]] = f_pre_streaming[local_x, local_y, [1, 5]]
-
-            if x_in_process(coord2d, lx // 4 + 1, lx, x_size):  # right side
-                local_x = global_to_local_direction(coord2d[0], lx // 4 + 1, lx, x_size)
-                for y in range(y_min, y_max):
-                    if y_in_process(coord2d, y, ly, y_size):
-                        local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
-                        f_post_streaming[local_x, local_y, [1, 5, 8]] = f_pre_streaming[local_x, local_y, [3, 7, 6]]
-
-                if y_in_process(coord2d, ly // 2 + plate_size // 2 - 1, ly, y_size):  # right side upper corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 + plate_size // 2 - 1, ly, y_size)
-                    f_post_streaming[local_x, local_y, [1, 5]] = f_pre_streaming[local_x, local_y, [3, 7]]
-                if y_in_process(coord2d, ly // 2 - plate_size // 2, ly, y_size):  # right side lower corner
-                    local_y = global_to_local_direction(coord2d[1], ly // 2 - plate_size // 2, ly, y_size)
-                    f_post_streaming[local_x, local_y, [1, 8]] = f_pre_streaming[local_x, local_y, [3, 6]]
-
-            return f_post_streaming
-        return bc
-
-    bound_func = boundary(coords2d, n_local_x, n_local_y)
+    bound_func = parallel_von_karman_boundary_conditions(coords2d, n_local_x, n_local_y, lx, ly, x_size, y_size,
+                                                         inlet_density, inlet_velocity, plate_size)
     communication_func = communication(cartesian2d)
 
     # main loop

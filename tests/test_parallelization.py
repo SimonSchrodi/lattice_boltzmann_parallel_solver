@@ -92,7 +92,7 @@ def run_test():
     if process_coord is not None:
         vel_at_p = [np.linalg.norm(velocity[px, py, ...])]
 
-    bound_func = boundary(coords2d, n_local_x, n_local_y)
+    bound_func = parallel_von_karman_boundary_conditions(coords2d, n_local_x, n_local_y, lx, ly, x_size, y_size, density_in, u0, d)
     communication_func = communication(cartesian2d)
 
     if rank == 0:

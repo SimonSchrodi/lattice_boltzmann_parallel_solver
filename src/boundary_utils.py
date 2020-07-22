@@ -161,23 +161,7 @@ def parallel_von_karman_boundary_conditions(coord2d: list,
                 plate_boundary_right[local_x, local_y] = 1
         plate_boundary_right = plate_boundary_right.astype(np.bool)
 
-    def bc(f_pre_streaming: np.ndarray, f_post_streaming: np.ndarray, density: np.ndarray = None,
-           velocity: np.ndarray = None, f_prev: np.ndarray = None) -> np.ndarray:
-        """
-        Function which executes the boundary conditions for the von karman vortex street in the parallel implementation
-
-        Args:
-            f_pre_streaming: before streaming probability density function
-            f_post_streaming: after streaming probability density function
-            density: density
-            velocity: velocity
-            f_prev: after streaming probability density function of the previous time step
-
-        Returns:
-            after streaming probability density function on which boundary condition of the von karman vortex street in
-            the parallel implementation were applied
-
-        """
+    def bc(f_pre_streaming, f_post_streaming, density=None, velocity=None, f_previous=None):
         # inlet
         if x_in_process(coord2d, 0, lx, x_size):
             f_post_streaming[1:-1, 1:-1, :] = inlet((n_local_x, n_local_y), density_in, velocity_in)(
@@ -185,18 +169,21 @@ def parallel_von_karman_boundary_conditions(coord2d: list,
 
         # outlet
         if x_in_process(coord2d, lx - 1, lx, x_size) and x_in_process(coord2d, lx - 2, lx, x_size):
-            f_post_streaming[1:-1, 1:-1, :] = outlet()(f_prev.copy()[1:-1, 1:-1, :],
+            f_post_streaming[1:-1, 1:-1, :] = outlet()(f_previous.copy()[1:-1, 1:-1, :],
                                                        f_post_streaming.copy()[1:-1, 1:-1, :])
         elif x_in_process(coord2d, lx - 1, lx, x_size) or x_in_process(coord2d, lx - 2, lx, x_size):
-            # TODO communicate f_prev
+            # TODO communicate f_previous
             raise NotImplementedError
 
-        # plate boundary condition left
-        if x_in_process(coord2d, lx // 4, lx, x_size):
-            f_post_streaming[plate_boundary_left, [3, 7, 6]] = f_pre_streaming[plate_boundary_left, [1, 5, 8]]
-
-            # corner cases
+        # plate boundary condition
+        y_min, y_max = ly // 2 - plate_size // 2 + 1, ly // 2 + plate_size // 2 - 1
+        if x_in_process(coord2d, lx // 4, lx, x_size):  # left side
             local_x = global_to_local_direction(coord2d[0], lx // 4, lx, x_size)
+            for y in range(y_min, y_max):
+                if y_in_process(coord2d, y, ly, y_size):
+                    local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
+                    f_post_streaming[local_x, local_y, [3, 7, 6]] = f_pre_streaming[local_x, local_y, [1, 5, 8]]
+
             if y_in_process(coord2d, ly // 2 + plate_size // 2 - 1, ly, y_size):  # left side upper corner
                 local_y = global_to_local_direction(coord2d[1], ly // 2 + plate_size // 2 - 1, ly, y_size)
                 f_post_streaming[local_x, local_y, [3, 6]] = f_pre_streaming[local_x, local_y, [1, 8]]
@@ -204,12 +191,13 @@ def parallel_von_karman_boundary_conditions(coord2d: list,
                 local_y = global_to_local_direction(coord2d[1], ly // 2 - plate_size // 2, ly, y_size)
                 f_post_streaming[local_x, local_y, [3, 7]] = f_pre_streaming[local_x, local_y, [1, 5]]
 
-        # plate boundary condition right
-        if x_in_process(coord2d, lx // 4 + 1, lx, x_size):
-            f_post_streaming[plate_boundary_right, [1, 5, 8]] = f_pre_streaming[plate_boundary_right, [3, 7, 6]]
-
-            # corner cases
+        if x_in_process(coord2d, lx // 4 + 1, lx, x_size):  # right side
             local_x = global_to_local_direction(coord2d[0], lx // 4 + 1, lx, x_size)
+            for y in range(y_min, y_max):
+                if y_in_process(coord2d, y, ly, y_size):
+                    local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
+                    f_post_streaming[local_x, local_y, [1, 5, 8]] = f_pre_streaming[local_x, local_y, [3, 7, 6]]
+
             if y_in_process(coord2d, ly // 2 + plate_size // 2 - 1, ly, y_size):  # right side upper corner
                 local_y = global_to_local_direction(coord2d[1], ly // 2 + plate_size // 2 - 1, ly, y_size)
                 f_post_streaming[local_x, local_y, [1, 5]] = f_pre_streaming[local_x, local_y, [3, 7]]
