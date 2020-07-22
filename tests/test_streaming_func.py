@@ -2,7 +2,7 @@ import unittest
 import logging
 import numpy as np
 
-from src.lattice_boltzman_equation import streaming
+from src.lattice_boltzmann_method import streaming
 
 
 class TestMassPreservation(unittest.TestCase):

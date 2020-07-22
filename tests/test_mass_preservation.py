@@ -2,7 +2,7 @@ import unittest
 import logging
 import numpy as np
 
-from src.lattice_boltzman_equation import compute_density, streaming, lattice_boltzman_step, equilibrium_distr_func
+from src.lattice_boltzmann_method import compute_density, streaming, lattice_boltzmann_step, equilibrium_distr_func
 
 
 class TestDensityComputation(unittest.TestCase):
@@ -29,7 +29,7 @@ class TestDensityComputation(unittest.TestCase):
         f = equilibrium_distr_func(density, velocity)
         omega = 0.5
         for _ in range(10000):
-            f_new, density_new, velocity_new = lattice_boltzman_step(f, density, velocity, omega)
+            f_new, density_new, velocity_new = lattice_boltzmann_step(f, density, velocity, omega)
             self.assertAlmostEqual(np.sum(density), np.sum(density_new), places=1)
             f, density, velocity = f_new, density_new, velocity_new
 

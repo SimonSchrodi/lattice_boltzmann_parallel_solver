@@ -2,7 +2,7 @@ import unittest
 import logging
 import numpy as np
 
-from src.lattice_boltzman_equation import compute_velocity_field
+from src.lattice_boltzmann_method import compute_velocity_field
 
 
 class TestVelocityComputation(unittest.TestCase):
