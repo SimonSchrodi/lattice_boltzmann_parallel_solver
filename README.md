@@ -1,4 +1,4 @@
-# Lattice Boltzmann Parallel Solver
+# Lattice Boltzmann Parallel Solver [![Build Status](https://travis-ci.com/infomon/lattice_boltzman_parallel_solver.svg?branch=master)](https://travis-ci.com/infomon/lattice_boltzman_parallel_solver)
 
 ## Results
 
