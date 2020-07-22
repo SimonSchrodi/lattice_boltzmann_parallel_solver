@@ -5,6 +5,7 @@ from typing import Tuple, Callable
 def get_velocity_sets() -> np.ndarray:
     """
     Get velocity set. Note that the length of the discrete velocities can be different.
+
     Returns:
         velocity set
 
@@ -28,6 +29,7 @@ def get_velocity_sets() -> np.ndarray:
 def vel_to_opp_vel_mapping() -> np.ndarray:
     """
     Opposite direction
+
     Returns:
         array with opposite directions of D2Q9
 
@@ -41,6 +43,7 @@ def get_w_i() -> np.ndarray:
     """
     Return weights defined for a D2Q9 lattice. The weighting takes the different lengths of
     the discrete velocities of the velocity set into account.
+
     Returns:
         weights defined for a D2Q9 lattice
     """
@@ -49,7 +52,7 @@ def get_w_i() -> np.ndarray:
     )
 
 
-def reynolds_number(L, u, v) -> float:
+def reynolds_number(L: int, u: float, v: float) -> float:
     """
     Compute the Reynolds number
 
@@ -68,7 +71,7 @@ def reynolds_number(L, u, v) -> float:
     )
 
 
-def strouhal_number(f, L, u) -> float:
+def strouhal_number(f: float, L: int, u: float) -> float:
     """
     Computes the Strouhal number
 
@@ -95,7 +98,7 @@ def compute_density(prob_densitiy_func: np.ndarray) -> np.ndarray:
         prob_densitiy_func: probability density function f(r,v,t)
 
     Returns:
-        local density
+        density given the probability density function
 
     """
     assert prob_densitiy_func.shape[-1] == 9
@@ -107,11 +110,11 @@ def compute_velocity_field(density_func: np.ndarray, prob_density_func: np.ndarr
     Computes the velocity field
 
     Args:
-        density_func: local density rho(x)
+        density_func: density rho(x)
         prob_density_func: probability density function f(r,v,t)
 
     Returns:
-        local average velocity
+        velocity field given the density and probability density function
 
     """
     assert prob_density_func.shape[-1] == 9
@@ -142,7 +145,7 @@ def streaming(prob_density_func: np.ndarray) -> np.ndarray:
         prob_density_func: probability density function f(r,v,t)
 
     Returns:
-        new probability density function
+        new probability density function after streaming
 
     """
     assert prob_density_func.shape[-1] == 9
@@ -161,11 +164,11 @@ def equilibrium_distr_func(density_func: np.ndarray, velocity_field: np.ndarray)
     Computes the equilibrium distribution function
 
     Args:
-        density_func: local density rho(x)
+        density_func: density rho(x)
         velocity_field: velocity u(x)
 
     Returns:
-        equilibrium distribution function
+        equilibrium probability density function
 
     """
     assert density_func.shape == velocity_field.shape[:-1]
@@ -185,20 +188,20 @@ def equilibrium_distr_func(density_func: np.ndarray, velocity_field: np.ndarray)
     return f_eq
 
 
-def lattice_boltzman_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarray, omega: float,
+def lattice_boltzmann_step(f: np.ndarray, density: np.ndarray, velocity: np.ndarray, omega: float,
                           boundary: Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray], np.ndarray] = None,
                           parallel_communication: Callable[[np.ndarray], np.ndarray] = None) \
         -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Carries out a lattice boltzman step
+    Carries out a lattice boltzmann step
 
     Args:
         f: probability density function f(r,v,t)
-        density: local density rho(x)
+        density: density rho(x)
         velocity: velocity u(x)
-        omega:
-        boundary:
-        parallel_communication:
+        omega: relaxation
+        boundary: function which executes the boundary conditions
+        parallel_communication: function executing the communication step before streaming for parallel implementation
 
     Returns:
         new probability density function, new density function, new velocity function
