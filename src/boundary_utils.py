@@ -149,7 +149,6 @@ def parallel_von_karman_boundary_conditions(coord2d: list,
         for y in range(y_min, y_max):
             if y_in_process(coord2d, y, ly, y_size):
                 local_y = global_to_local_direction(coord2d[1], y, ly, y_size)
-                print(coord2d, y_max, y, local_y,plate_boundary_left.shape)
                 plate_boundary_left[local_x, local_y] = 1
         plate_boundary_left = plate_boundary_left.astype(np.bool)
 
