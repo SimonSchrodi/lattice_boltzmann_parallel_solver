@@ -401,7 +401,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
 
     plt.close()
 
-    popt, pcov = curve_fit(lambda y, a, b, c: a * (y ** 2) + b * y + c, np.array(y).squeeze(), uy)
+    popt, pcov = curve_fit(lambda y, a, b, c: a * (y ** 2) + b * y + c, np.arange(0, ly), vx[x_coord, :])
     with open('./figures/poiseuille_flow/curve_fit.csv', 'w', newline='') as csvfile:
         fieldnames = ['popt', 'pcov']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
