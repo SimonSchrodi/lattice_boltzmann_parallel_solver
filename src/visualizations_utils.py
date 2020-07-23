@@ -144,13 +144,11 @@ def plot_reynolds_strouhal():
         plt.savefig(file + '.svg')
         plt.close()
 
-
         reynolds.append(int(file[file.rfind('_') + 1:file.rfind('.npy')]))
         if reynolds[-1] == 40:
             vel_at_p = vel_at_p[140000:]
         else:
             vel_at_p = vel_at_p[70000:]
-
 
         vel_at_p -= np.mean(vel_at_p)
         yf = np.fft.fft(vel_at_p)
