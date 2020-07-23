@@ -1,8 +1,10 @@
 \documentclass[a4paper,11pt, footsepline]{book}
 \usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
+\usepackage[utf8x]{inputenc}
 \usepackage{lmodern}
 \usepackage{textcomp}
+\usepackage{subfigure}
+\usepackage{pgf}
 
 \usepackage{hyperref}
 \usepackage{graphicx}
@@ -18,6 +20,8 @@
 \lstset{basicstyle=\ttfamily, keywordstyle=\bfseries}
 
 \SetAlCapSkip{1em}
+
+\newcommand{\rulesep}{\unskip\ \vrule\ }
 
 
 \renewcommand*{\algorithmcfname}{Code listing}
@@ -49,7 +53,6 @@
    \itshape}
   {\par\normalfont\hfill--\ \chapquote@author\hspace*{\@tempdima}\par\bigskip}
 \makeatother
-
 
 
 
@@ -118,7 +121,7 @@ where $\tau$ is the so-called characteristic time, $\rho$ is the mass density, $
 \subsection*{Discretization of the \ac{bte}}
 The \ac{bte} of eq. \ref{eq-bte} is defined in the continuous domain. In order to work with the \ac{bte} on the computer we have to discretize it in space, velocity and time. The space discretization can be done by just using a discrete lattice (e.g. two-dimensional array). To discretize the velocity and time we have to impose that the velocity multiplied with the time is equal to some integer, i.e. the particle can only travel on the given lattice and not in-between lattice nodes. 
 
-We discretize the velocity directions with the D2Q9 scheme (see fig. \ref{fig:mesh}a), which is two-dimensional and consists of nine discrete velocity directions. The velocity directions point to each of its neighbors in the Moore neighborhood. Note, that at the central lattice node the particle is at rest. We define the velocity vectors as follows:
+We discretize the velocity directions with the D2Q9 scheme (see fig. \ref{fig:mesh}), which is two-dimensional and consists of nine discrete velocity directions. The velocity directions point to each of its neighbors in the Moore neighborhood. Note, that at the central lattice node the particle is at rest. We define the velocity vectors as follows:
 \begin{equation}
 \mathbf{c_i}=\begin{pmatrix}
 0 & 1 & 0 & -1 & 0 & 1 & -1 & -1 & 1\\
@@ -128,8 +131,8 @@ We discretize the velocity directions with the D2Q9 scheme (see fig. \ref{fig:me
 Therefore, we discretize the probability density function $f(\mathbf{r},\mathbf{v},t)$ to obtain the discrete probability density function $f_{i}(\mathbf{x},t)$, where the subscript $i$ indicates the direction and $\mathbf{x}$ is the discrete lattice.
 \begin{figure}
   \begin{center}
-   \includegraphics[width=10cm]{logos/Gitter_LBM.png}
-   \caption{Discretization of \ac{bte}. (a) Discretization of the velocity space into nine discrete directions. The numbers $0,...,9$ uniquely identify the direction. (b) Spatial discretization for the two-dimensional lattice. The green arrows show the possible directions of the particle in the middle. For sake of simplicity, assume that the particle only moves in direction $5$. In the next time step the particle is located at the red dot.}
+   \includegraphics[width=.3\textwidth]{../figures/lbm/d2q9.png}
+   \caption{Discretization of the velocity space into nine discrete directions (D2Q9). The numbers $0,...,9$ uniquely identify the direction.}
   \label{fig:mesh}
   \end{center}
 \end{figure}
@@ -152,7 +155,14 @@ where $w_{i}=
 \frac{4}{9}, ~if~i=0\\
 \frac{1}{9}, ~if~i=1,2,3,4\\
 \frac{1}{36}, ~if~i=5,6,7,8
-\end{cases}$. Fig. \ref{fig:mesh}b gives a simplified example for eq. \ref{eq-discretizedBTE}.
+\end{cases}$. Fig. \ref{fig:streamingCollisionVis} gives an example for eq. \ref{eq-discretizedBTE} for a single node. In the streaming step, the node receives direction-specific probability density function values $f_{i}(\mathbf{x},t)$ from its nine neighbors. In the collision step, we relax the new probability density function values $f_{i}(\mathbf{x},t\Delta t)$ towards the equilibrium probability density function $f^{eq}_{i}$ and thereby take into account collisions between particles.
+\begin{figure}
+  \begin{center}
+   \includegraphics[width=\textwidth]{../figures/lbm/vis.png}
+   \caption{Visualization of the streaming and collision step. The arrows' length represent the normalized values of the distribution function for every discrete direction.}
+  \label{fig:streamingCollisionVis}
+  \end{center}
+\end{figure}
 \section{Moment update}\label{sec-momentUpdate}
 In the \ac{lbm}, the density $\rho$ and velocity $\mathbf{u}$ are defined by the zeroth and first moments of the probability distribution function $f$, respectively:
 \begin{align} 
@@ -189,10 +199,10 @@ The periodic boundary conditions with pressure variation add a density drop $\De
 Let's assume that we want to model a pressure drop in x-direction, then it holds $\forall y\in\lbrace 1,...,l_{y}\rbrace$ that $p(x_{1},y,t)=p(x_{N},y,t)+\Delta\rho$, where $l_{y}$ denotes the diameter in y-direction and $x_1$ and $x_{N}$ denote the left-most and right-most node in the \ac{lbm}, respectively. Thus, we get $\rho_{out}=\frac{p_{out}}{c_{s}^2}$ and $\rho_{in}=\frac{p_{out}+\Delta p}{c_{s}^2}$, where the subscripts $in$ and $out$ denote the pressure values at the periodic boundaries.
 Note, that the velocity is the same at the periodic boundaries: $\mathbf{u}(x_{1},y,t)=\mathbf{u}(x_{N},y,t)$.
 
-Let's now assume virtual nodes $\mathbf{x}_{0}$ and $\mathbf{x}_{N+1}$ at both ends of the periodic boundaries. Note, that the virtual nodes $\mathbf{x}_{0}$ and $\mathbf{x}_{N}$ correspond to $\mathbf{x}_{N}$ and $\mathbf{x}_{1}$, respectively. Visually we can imagine this like (infinitely) many pipes connected to each other. We decompose the probability density function into a equilibrium part $f_{i}^{eq}$ and non-equilibrium part $f_{i}^{neq}$. The non-equilibrium probability density function is computed by $f_{i}^{neq}=f_{i}-f_{i}^{eq}$. Combining the correspondences of virtual nodes and nodes in the physical domain as well as the decomposition into (non)-equilibrium probability density function parts we obtain the inlet and outlet boundary condition, respectively
+Let's now assume virtual nodes $\mathbf{x}_{0}$ and $\mathbf{x}_{N+1}$ at both ends of the periodic boundaries. Note, that the virtual nodes $\mathbf{x}_{0}$ and $\mathbf{x}_{N}$ correspond to $\mathbf{x}_{N}$ and $\mathbf{x}_{1}$, respectively. Visually we can imagine this like (infinitely) many pipes connected to each other. We decompose the probability density function into a equilibrium part $f_{i}^{eq}$ and non-equilibrium part $f_{i}^{neq}$. The non-equilibrium probability density function is computed by $f_{i}^{neq}=f_{i}-f_{i}^{eq}$. Combining the correspondences of virtual nodes and nodes in the physical domain as well as the decomposition into (non)-equilibrium probability density function parts we obtain the inlet and outlet boundary condition, respectively:
 \begin{align}
-f_{i}^{\ast}(x_0,y,t)&=f_{i}^{eq}(\rho_{in},\mathbf{u_N})+\underbrace{(f_{i}^{\ast}(x_N,y,t)-f_{i}^{eq}(x_N,y,t)}_{f_i^{neq}(x_N,y,t)}\rbrace\\
-f_{i}^{\ast}(x_{N+1},y,t)&=f_{i}^{eq}(\rho_{out},\mathbf{u_1})+\underbrace{(f_{i}^{\ast}(x_1,y,t)-f_{i}^{eq}(x_1,y,t)}_{f_i^{neq}(x_1,y,t)}\rbrace
+f_{i}^{\ast}(x_0,y,t)&=f_{i}^{eq}(\rho_{in},\mathbf{u_N})+\underbrace{(f_{i}^{\ast}(x_N,y,t)-f_{i}^{eq}(x_N,y,t)}_{f_i^{neq}(x_N,y,t)},~and\\
+f_{i}^{\ast}(x_{N+1},y,t)&=f_{i}^{eq}(\rho_{out},\mathbf{u_1})+\underbrace{(f_{i}^{\ast}(x_1,y,t)-f_{i}^{eq}(x_1,y,t)}_{f_i^{neq}(x_1,y,t)}.
 \end{align}
 \subsection*{Bounce-back boundary}
 The bounce-back boundary condition applies a no-slip condition at the boundary. It simulates the interaction between the fluid with a non-moving wall without slip. It can also be applied to a stationary obstacle such as a plate.
@@ -315,7 +325,7 @@ For the periodic boundary conditions with pressure variation we extend the domai
      \# Outlet\\
      f\textunderscore post[-1,:, i]=f\textunderscore previous[-2,:,i]\\
      \# Periodic boundary condition with pressure variation\\
-  f\textunderscore post[0,:,i]=f\textunderscore eq(rho\textunderscore in, u[-2,...])[...,i].T + (f\textunderscore pre[-2,:,i]-f\textunderscore eq(rho, u)[-2,:,i])
+  f\textunderscore pre[0,:,i]=f\textunderscore eq(rho\textunderscore in, u[-2,...])[...,i].T + (f\textunderscore pre[-2,:,i]-f\textunderscore eq(rho, u)[-2,:,i])
 \end{algorithm}
 \section{Parallelization}\label{sec-parallelization}
 We parallelize the \ac{lbm} using spatial domain decomposition and \acf{mpi} \cite{Dalcin.2005, Dalcin.2008, Dalcin.2011}. \ac{mpi} is a \textit{communication protocol} for programming parallel computers, i.e. \ac{simd} \cite{Flynn.1972} by executing the same operation on multiple data points simultaneously.
@@ -330,13 +340,15 @@ For the streaming step we have to consider particles moving from one domain to a
 
 \begin{figure}
   \begin{center}
-   \includegraphics[width=10cm]{../figures/parallelization_strategy/parallelization_scheme.png}
-   \caption{Example of spatial domain decomposition and communication strategy. We decompose the original domain into a $2\times 2$ grid of sub domains of roughly equal size (blue lattice points). We add additional ghost nodes around the actual computational domain (white lattice points). In the communication step, we communicate the rightmost, leftmost, bottommost and topmost lattice points in the actual computational domain into the neighboring ghost lattice points. In the figure we show the communication step of the rightmost lattice points to the ghost cells of the respective  right neighbors.}
+  \subfigure[Communication in x direction.]{\includegraphics[width=0.4\textwidth]{../figures/parallelization_strategy/parallelization_scheme_x.png}}
+\rulesep
+    \subfigure[Communication in y direction.]{\includegraphics[width=0.5\textwidth]{../figures/parallelization_strategy/parallelization_scheme_y.png}}
+   \caption{Example of spatial domain decomposition and communication strategy. We decompose the original domain into a $2\times 2$ grid of sub domains of roughly equal size (blue lattice points). We add additional ghost nodes around the actual computational domain (white lattice points). In the communication step, we communicate the rightmost, leftmost, bottommost and topmost lattice points in the actual computational domain into the neighboring ghost lattice points. In the left subfigure (a) we show the communication step in the right direction, i.e. respective  right neighbors except for the edge domains. In the right subfigure (b) we show the communication step in the top direction.}
   \label{fig:parallelizationScheme}
   \end{center}
 \end{figure}
-Let's consider the example of fig. \ref{fig:parallelizationScheme}. We consider a $2\times 2$ decomposition of the original computational domain and we denote the lower left subdomain with rank $0$, upper left with rank $1$, lower right with rank $2$ and upper right with rank $3$. W.l.o.g., we first consider the rightmost nodes $\mathbf{x}_r$ of each sub domain. We communicate the rightmost nodes $\mathbf{x}_r$ from each process to the neighboring process on the right. In our particular example this means that we communicate the rightmost nodes $\mathbf{x}_r$ of the process with rank $0$ to the ghost cells on the left side of process with rank $2$. Accordingly, we communicate from process $1$ to process $3$, $2$ to $1$ and $3$ to $1$. Note that we do communicate from process $2$ to $0$ and $3$ to $1$ or more generally we do communicate outer boundaries of edge domains, since we set \textsf{periods=(True, True)} when calling the \ac{mpi} function \textsf{Create\textunderscore cart}. This implicitly implements the periodic boundary conditions.
-We repeat this procedure for the leftmost nodes $\mathbf{x}_l$, bottommost nodes $\mathbf{x}_b$ and topmost nodes $\mathbf{x}_t$ accordingly. This totals in four communication steps. Code listing \ref{algo-communication} shows the implementation of the communication step. We call the communication step right before the streaming step in code listing \ref{algo-pseudeocode}.
+Let's consider the example of fig. \ref{fig:parallelizationScheme}. We consider a $2\times 2$ decomposition of the original computational domain and we denote the lower left subdomain with rank $0$, upper left with rank $1$, lower right with rank $2$ and upper right with rank $3$. W.l.o.g., we first consider the rightmost nodes $\mathbf{x}_r$ of each sub domain. We communicate the rightmost nodes $\mathbf{x}_r$ from each process to the neighboring process on the right. In our particular example this means that we communicate the rightmost nodes $\mathbf{x}_r$ of the process with rank $0$ to the ghost cells on the left side of process with rank $1$. Accordingly, we communicate from process $2$ to process $3$, $2$ to $1$ and $3$ to $1$. Note that we do communicate from process $2$ to $0$ and $3$ to $1$ or more generally we do communicate outer boundaries of edge domains, since we set \textsf{periods=(True, True)} when calling the \ac{mpi} function \textsf{Create\textunderscore cart}.\footnote{Note, that we could set \textsf{periods=(False, True)} for the von K\'{a}rm\'{a}n's vortex street experiment, since we set the inlet and outlet boundary nodes in every time step. However, for sake of generality we set \textsf{periods=(True, True)}.} This implicitly implements the periodic boundary conditions.
+We repeat this procedure for the leftmost nodes $\mathbf{x}_l$, bottommost nodes $\mathbf{x}_b$ and topmost nodes $\mathbf{x}_t$ (see right subfigure of fig. \ref{fig:parallelizationScheme}) accordingly. This totals in four communication steps. Code listing \ref{algo-communication} shows the implementation of the communication step. We call the communication step right before the streaming step in code listing \ref{algo-pseudeocode}.
 \begin{algorithm}
  \caption{\label{algo-communication}Python implementation of the communication step.}
      \SetAlgoLined
@@ -392,7 +404,7 @@ Additionally, we validate the parallelized implementation by comparing it to the
 
 We integrate the unit tests into \ac{ci} using \textit{Travis CI} as build server so that the implementation and its potential unintentional modifications are validated for each commit to the repository.
 \chapter{Numerical results}\label{ch-results}
-To demonstrate the \ac{lbm} implementation we conduct several experiments with different combinations of boundary conditions. First we consider a \textit{shear wave decay} (section \ref{sec-shearWave}) to validate whether our implementation preserves mass as well as to show how $\omega$ relates to the kinematic viscosity $\nu$. In sections \ref{sec-couette} and \ref{sec-pouseuille} we implement well known laminar flows, i.e. \textit{couette} and \textit{pouiseuille} flow, from the literature and compare it to their analytical solutions, respectively. In section \ref{sec-karman} we implement the \textit{von K\'{a}rm\'{a}n's vortex street} and in the following section \ref{sec-scaling} how we can reduce computational complexity by spatial domain decomposition as introduced in section \ref{sec-parallelization}.
+To demonstrate the \ac{lbm} implementation we conduct several experiments with different combinations of boundary conditions. First we consider a \textit{shear wave decay} (section \ref{sec-shearWave}) to validate whether our implementation preserves mass as well as to show how $\omega$ relates to the kinematic viscosity $\nu$. In sections \ref{sec-Couette} and \ref{sec-pouseuille} we implement well known laminar flows, i.e. \textit{Couette} and \textit{pouiseuille} flow, from the literature and compare it to their analytical solutions, respectively. In section \ref{sec-karman} we implement the \textit{von K\'{a}rm\'{a}n's vortex street} and in the following section \ref{sec-scaling} how we can reduce computational complexity by spatial domain decomposition as introduced in section \ref{sec-parallelization}.
 \section{Shear wave decay}\label{sec-shearWave}
 The shear wave decay simulates a physical domain with only periodic boundary conditions which is in a initial state and its incremental steps towards the equilibrium state. One common practical and illustrative application of it, is the simulation of the breaking of a water dam. This exemplar application also shows the importance of simulations as the \ac{lbm} to simulate rather than applying it in a real-world setting potentially causing mass destruction and high costs.
 
@@ -414,12 +426,49 @@ We choose the following simulation parameters for our experiments:
 \item $\rho_{initial}(\mathbf{x})=0.0$
 \item $\epsilon_{\mathbf{u}}=0.08$
 \end{itemize}
-\item time steps $=2000$
 \end{itemize}
-\section{Planar couette flow}\label{sec-couette}
-The planar couette flow is a steady, laminar flow between two infinitely long, parallel plates with a fixed distance. One of those plates moves tangentially at a velocity of $U$ relative to the other plate, which itself is stationary. The flow is caused by the viscous drag force acting on the fluid.
 
-We choose the following simulation parameters for our experiments about the planar couette flow:
+In our experiments we only use periodic boundary conditions and we set the initial density and velocity as described in the above bullet list.
+
+Fig. \ref{fig:evolution_density_surface} and \ref{fig:evolution_velocity_surface} show results for the two experiments. For the first experiment shown in the fig. \ref{fig:evolution_density_surface} we can imagine this as a wave in a swimming pool at an arbitrary. When we neglect environmental influences, such as wind, the wave will flatten out to an equilibrium state (without any wave). For sake of simplicity we neglect the periodic boundary condition here for the intuition. We can observe the same behavior in fig. \ref{fig:evolution_density_surface}. The wave has a smaller amplitude every time step until its reaches the equilibrium state. We can observe the same behavior in fig. \ref{fig:evolution_velocity_surface} when we have an initial sinusoidal velocity. The experiment validates that our \ac{lbm} implementation works correctly.
+\begin{figure}
+  \begin{center}
+	\scalebox{0.7}{\input{../figures/shear_wave_decay/evolution_density_surface.pgf}}
+   \caption{Evolution of the initial sinusoidal density over $2500$ time steps.}
+  \label{fig:evolution_density_surface}
+  \end{center}
+\end{figure}
+\begin{figure}
+  \begin{center}
+	\scalebox{0.7}{\input{../figures/shear_wave_decay/evolution_velocity_surface.pgf}}
+   \caption{Evolution of the initial sinusoidal velocity over $2500$ time steps.}
+  \label{fig:evolution_velocity_surface}
+  \end{center}
+\end{figure}
+
+Fig. \ref{fig:omega_vs_viscosity} shows the effect on the viscosity $\nu$ when we vary the relaxation parameter $\omega$ for a given sinusoidal density or velocity. For the experiment we compute the simulated viscosity based on the exponential decay curve of the density and velocity using SciPy's function \textsf{curve\textunderscore fit}, respectively. Note, since the densities swing quite a lot and we thus do not have a smooth exponential decay curve we only take the maximums of the swinging into account. To obtain them we use SciPy's function \textsf{argrelextrema}. We can obtain the analytical solution for a given $\omega$ as follows
+\begin{equation}
+\nu = \frac{1}{3}(\frac{1}{\omega}-\frac{1}{2}).
+\end{equation}
+Note that we use the log scale on the y-axis for plotting. Thus, one has take the scaling into account, when arguing about the results.
+
+\begin{figure}
+  \begin{center}
+	\scalebox{0.7}{\input{../figures/shear_wave_decay/meas_visc_vs_omega.pgf}}
+   \caption{Viscosity $\nu$ over different relaxation parameters $\omega$ using $2500$ time steps for each run. In the left subfigure, we set a sinusoidal density as described above and set all velocities to zero as initial condition. In the right subfigure, we set a sinusoidal velocity given the parameters as described above and set all densities to zero. Note, that the y-axis is in log scale.}
+  \label{fig:omega_vs_viscosity}
+  \end{center}
+\end{figure}
+We can observe that the analytical viscosity matches the simulated viscosity quite well. However, when the relaxation parameter $\omega$ gets closer to $0$ or $2$ the error between analytical viscosity and simulated viscosity tends to increase. In other words, we can observe that our \ac{lbm} implementation gets numerically unstable when $\omega$ moves towards its minimum or maximum. We have to take this finding into consideration for our other experiments, because choosing an unsuited relaxation parameter $\omega$ can lead to wrong results just because of numerical instabilities.
+\section{Planar Couette flow}\label{sec-Couette}
+The planar Couette flow is a steady, laminar flow between two infinitely long, parallel plates with a fixed distance. One of those plates moves tangentially at a velocity of $U$ relative to the other plate, which itself is stationary. The flow is caused by the viscous drag force acting on the fluid. For the Couette flow exists an analytical solution, so that we can test the numerical simulation results of our implementation of the \ac{lbm}. The analytical solution is given by
+\begin{equation}
+\label{eq:couetteEq}
+u(y)=-U\frac{y}{h},
+\end{equation}
+where $h$ is distance between the two plates and $u(y)$ is the velocity distribution for a given spatial coordinate normal to the plates $y$. For sake of clarity we use $h$ instead of $ly$ in eq. \ref{eq:couetteEq}. In the implementation those values are equal.
+
+In our experiment, we apply the bounce-back boundary condition at the top wall, the moving wall at the bottom wall and periodic boundary conditions at the inlet and outlet. We choose the following simulation parameters for our experiments about the planar Couette flow:
 \begin{itemize}
 \setlength\itemsep{0.15em}
 \item lattice grid shape $=20\times 30$
@@ -430,34 +479,98 @@ We choose the following simulation parameters for our experiments about the plan
 \item time steps $=4000$
 \end{itemize}
 
-We can see that the simulated solution almost exactly reproduces the analytical solution. This shows that the bounce-back boundary condition is first-order accurate. Furthermore, it is also second-order accurate, since the boundary values and its first-order derivative are reproduced exactly.
+Fig. \ref{fig:Couette_vectors}(a) shows the visual results of the experiment. We can observe that the maximum velocity in x-direction is maximal at the bottom wall and minimal at the top wall. At the bottom wall the velocity in x-direction is exactly the same as the tangential velocity of $0.05\frac{lu}{s}$ of the moving wall. At the top wall the velocity in x-direction is equal to $0$. Other velocities at position $y$ can be linearly interpolated. When we linearly interpolate those points we get a slope of $m=-\frac{1}{600}$ and intercept of $c=0.05$. When comparing this to the analytical solution from eq. \ref{eq:couetteEq}, this is exactly the same. This results is verified by fig. \ref{fig:Couette_vectors}(b) which shows no absolute error (i.e. $0$). Note, that we set values less than $10^{-4}$ to $0$, since we attribute those tiny absolute errors to numerical instabilities.
+\begin{figure}
+  \begin{center}
+  \subfigure[Visual result]{
+	\scalebox{0.4}{\input{../figures/couette_flow/vel_vectors.pgf}}}
+	  \subfigure[Absolute error]{
+	\scalebox{0.4}{\input{../figures/couette_flow/absolute_error.pgf}}}
+   \caption{Results of the simulation of the couette flow for our \ac{lbm} implementation after $4000$ time steps. In (a) we show the results of the velocity front to which the system is converged. In (b) we show the absolute error of the simulation results compared to the analytical solution.}
+  \label{fig:Couette_vectors}
+  \end{center}
+\end{figure}
 
-%TODO write plotting for this
-We can also observe that the solution is viscosity-independent.
-\section{Planar poiseuille flow}\label{sec-pouseuille}
-The planar poiseuille flow is a steady flow between two non-moving plates. The flow is caused by a constant pressure gradient $\frac{dp}{dx}$ in the axial direction, $x$, parallel to two infinitely long parallel plates, seperated by a distance $h$.
+Fig. \ref{fig:Couette_evolution} shows the evolution of the couette flow. As we can see, the moving wall drags nearby particles, which in turn drag neighboring particles (with less force). In the first time steps particles nearby the moving wall accelerate to the velocity of the moving wall. Those particles in turn accelerate adjacent particles. However, we can see that the acceleration of the other particles is less rapid the further away the particle from the moving wall. After around the $600$th time step the velocities in x-direction are almost exactly the same as the analytical solution given in eq. \ref{eq:couetteEq}. However, after those time steps there are minor improvements of the simulation results towards the true analytical solution.
+\begin{figure}
+  \begin{center}
+	\scalebox{0.7}{\input{../figures/couette_flow/vel_vectors_evolution.pgf}}
+   \caption{Couette flow evolution over $4000$ time steps.}
+  \label{fig:Couette_evolution}
+  \end{center}
+\end{figure}
+\section{Planar Poiseuille flow}\label{sec-pouseuille}
+The planar Poiseuille flow is a steady flow between two non-moving plates. The flow is caused by a constant pressure gradient $\frac{dp}{dx}$ in the axial direction, $x$, parallel to two infinitely long parallel plates, separated by a distance $h$.
+As for the Couette flow, there exists an analytical solution for the Poiseuille flow, so that we can test the numerical simulation results of our implementation of the \ac{lbm}. The analytical solution is given by
+\begin{equation}
+\label{eq:poiseuilleEq}
+u(y)=-\frac{1}{2\mu}\frac{dp}{dx}y(h-y),
+\end{equation} 
 
-We choose the following simulation parameters for our experiments about the planar poiseuille flow:
+In our experiments, we apply bounce-back boundary conditions at the bottom and top wall and the periodic boundary condition with pressure variation at the inlet and outlet nodes.
+We choose the following simulation parameters for our experiments about the planar Poiseuille flow:
 \begin{itemize}
 \setlength\itemsep{0.15em}
-\item lattice grid shape $=200\times 30$
+\item lattice grid shape $=200\times 60$
 \item $\omega=1.5$
 \item $p_{out}=\frac{1}{3}$
-\item $\Delta p=0.001111$
+\item $\Delta p=0.001$
 \item $\rho_{initial}(\mathbf{x})=1.0$
 \item $\mathbf{u}_{initial}(\mathbf{x})=0.0$
-\item time steps $=5000$
 \end{itemize}
 
+\begin{figure}
+  \begin{center}
+    \subfigure[Visual result]{
+	\scalebox{0.4}{\input{../figures/poiseuille_flow/vel_vectors.pgf}}}
+	    \subfigure[Absolute error]{
+	\scalebox{0.4}{\input{../figures/poiseuille_flow/absolute_error.pgf}}}
+   \caption{Poiseuille flow after $40000$ time steps. In the left subfigure (a) we show the Poiseuille flow at the first channel ($x=1$, cyan) and at the middle ($x=100$, blue). Note, since they overlay we do not see the first channel as good. In the right subfigure (b) we show the absolute error of the simulated solution compared to the analytical solution as describe by \ref{eq:poiseuilleEq}.}
+  \label{fig:Poiseuille_vectors}
+  \end{center}
+\end{figure}
+\begin{figure}
+  \begin{center}
+	\scalebox{0.7}{\input{../figures/poiseuille_flow/vel_vectors_evolution.pgf}}
+   \caption{Poiseuille flow evolution over $10000$ time steps. For sake of better visibility, we only use just $25\%$ of the time steps used in fig. \ref{fig:Poiseuille_vectors}. In the end there are just incremental steps towards the equilibrium that would not be visible in this plot due to its size.}
+  \label{fig:Poiseuille_evolution}
+  \end{center}
+\end{figure}
 Some error can occur due to:
 \begin{itemize}
 \item Inaccuracy introduced by the bounce-back boundary condition. In particular, the error depends on the viscosity.\cite{Kruger.2016}
 \end{itemize}
-
-%TODO write plot for viscosity test
-In fig. xyz we can observe that the boundary velocity changes for different $\omega 's$. This in turn shows that the poiseuille flow simulation is viscosity-dependent. This is called \textit{numerical boundary slip}. \cite{Kruger.2016}
 \section{Von K\'{a}rm\'{a}n's vortex street}\label{sec-karman}
+The von K\'{a}rm\'{a}n's vortex street is a well known phenomenon in fluid dynamics. It describes a process in which counter-rotating vortices are formed behind a body being flowed around by some fluid.
+\begin{figure}
+  \begin{center}
+  \subfigure[Step 0]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/0.png}}
+    \subfigure[Step 2000]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/2000.png}}
+        \subfigure[Step 6400]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/6400.png}}
+            \subfigure[Step 13500]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/13500.png}}
+            \subfigure[Step 20000]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/20000.png}}
+            \subfigure[Step 30000]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/30000.png}}
+                        \subfigure[Step 40000]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/40000.png}}
+            \subfigure[Step 45000]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/46500.png}}
+            \subfigure[Step 30000]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/46500.png}}            
+             \subfigure[Step 48000]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/48000.png}}
+            \subfigure[Step 50000]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/50000.png}}
+            \subfigure[Step 54000]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/54000.png}}
+                         \subfigure[Step 56000]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/56000.png}}
+            \subfigure[Step 60000]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/60000.png}}
+            \subfigure[Step 70000]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/70000.png}}
+            
+   \caption{Qualitative results of von K\'{a}rm\'{a}n's vortex street using the parallel implemenation. Qualitative results are chosen arbitrarily. In the aforementioned repository is a gif file showing a more continuous evolution.}
+  \label{fig:vonKarmanQualitative}
+  \end{center}
+\end{figure}
+
 \section{Scaling tests}\label{sec-scaling}
+One key advantage of the parallelization is its likely speedup. However, according to Amdahl's law \cite{Amdahl.1967} the speedup $S$ is described as follows
+\begin{equation}
+S=\frac{p}{f_{p}+f_{s}p},
+\end{equation}
+where p is the number of available processors or cores and fractions $f_{s}$ and $f_{p}$ which specify whether a certain part of the code has to executed on a single core or can be executed on multiple cores, respectively. Note that $f_{s}+f_{p}=1$. Note that as the number of processors increases, the speedup is more influenced by the serial part of the code. One could quickly argue that we just have to avoid the serial part in some cases. However, in most cases we have to communicate between processes or synchronize processes. In our parallel \ac{lbm} implementation the serial part corresponds to the communication step right before the streaming step.
 \chapter{Conclusions}\label{ch-conclusion}
 In this report we described the \ac{lbm} and its implementation in Python. We also show several applications of the \ac{lbm} to specific problems and compare the simulation results to analytical solutions if possible. We extend the serial implementation by using spatial domain decomposition to reduce computational costs by means of parallelization.
 
@@ -465,7 +578,7 @@ In chapter \ref{ch-method} we describe the theoretical foundations of the \ac{lb
 
 In chapter \ref{ch-implementation} we discussed the implementation and more specifically the parallelization of the \ac{lbm}. We demonstrate by using the high-level language Python that implementations of the discrete equations are straightforward. We show how to reduce the computational burden by decompose the domain spatially into subdomains. Note, that the collision step is embarrassingly parallel. For the streaming step we use ghost cells to communicate adjacent lattice nodes to neighboring process. For the boundary conditions we transform global indices into local indicies in order to apply boundary conditions on the correct boundary nodes.
 
-In chapter \ref{ch-results} we demonstrate in several applications the correctness of our \ac{lbm} implementation by comparing the simulation results to analytical solutions from the literature. In addition, we demonstrate the speed-up that we can obtain from the spatial domain decomposition parallelization strategy of the \ac{lbm} for the von K\'{a}rm\'{a}n's vortex street.
+In chapter \ref{ch-results} we demonstrate in several applications the correctness of our \ac{lbm} implementation by comparing the simulation results to analytical solutions from the literature. In addition, we demonstrate the speedup that we can obtain from the spatial domain decomposition parallelization strategy of the \ac{lbm} for the von K\'{a}rm\'{a}n's vortex street.
 
 \newpage
 
