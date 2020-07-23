@@ -247,7 +247,7 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
 def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30),
                                   omega: float = 1.0,
                                   U: float = 0.05,
-                                  time_steps: int = 4000):
+                                  time_steps: int = 5000):
     assert U <= 1 / np.sqrt(3)
     lx, ly = lattice_grid_shape
 
@@ -271,7 +271,7 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
              linewidth=1.5, c='green',
              linestyle='-')
     plt.ylabel('y position [lu]')
-    plt.xlabel(r'velocity in y-direction $u$ [$\frac{lu}{s}$]')
+    plt.xlabel(r'velocity in x-direction $\mathbf{u}_x$ [$\frac{lu}{s}$]')
     plt.legend()
 
     plt.savefig(r'./figures/couette_flow/vel_vectors.svg', bbox_inches='tight')
@@ -279,8 +279,8 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
 
     plt.close()
 
-    simulated = U * (ly - np.arange(0, ly + 1)) / ly
-    slope, intercept, rvalue, pvalue, stderr = linregress(np.arange(ly + 1), simulated)
+    simulated = vx[int(lx / 2)]
+    slope, intercept, rvalue, pvalue, stderr = linregress(np.arange(ly), simulated)
     with open('./figures/couette_flow/linregress.csv', 'w', newline='') as csvfile:
         fieldnames = ['slope', 'intercept', 'rvalue', 'pvalue', 'stderr']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -296,14 +296,15 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
         )
     analytical_points = [intercept + slope * (x + 0.5) for x in np.arange(0, ly)]
     simulated_points = vx[int(lx / 2), :]
-    relative_error = np.abs(analytical_points - simulated_points) / analytical_points
-    plt.plot(np.arange(0, ly), relative_error * 100)
+    abs_error = np.abs(simulated_points - analytical_points)
+    abs_error = np.where(abs_error < 10e-4, 0, abs_error)
+    plt.plot(np.arange(0, ly), abs_error)
 
     plt.xlabel(r'y position [lu]')
-    plt.ylabel(r'relative error [\%]')
+    plt.ylabel(r'absolute error [\%]')
 
-    plt.savefig(r'./figures/couette_flow/relative_error.svg', bbox_inches='tight')
-    plt.savefig(r'./figures/couette_flow/relative_error.pgf', bbox_inches='tight')
+    plt.savefig(r'./figures/couette_flow/absolute_error.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/couette_flow/absolute_error.pgf', bbox_inches='tight')
 
 
 def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200, 60),
@@ -362,7 +363,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
                  linestyle='-')
 
         plt.ylabel('y position [lu]')
-        plt.xlabel(r'velocity in y-direction $u$ [$\frac{lu}{s}$]')
+        plt.xlabel(r'velocity in x-direction $\mathbf{u}_x$ [$\frac{lu}{s}$]')
         handles, labels = plt.gca().get_legend_handles_labels()
         by_label = OrderedDict(zip(labels, handles))
         plt.legend(by_label.values(), by_label.keys())
@@ -414,14 +415,15 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
     a, b, c = popt
     analytical_points = [a * ((x + 0.5) ** 2) + b * (x + 0.5) + c for x in np.arange(0, ly)]
     simulated_points = vx[int(lx // 2), :]
-    relative_error = np.abs(analytical_points - simulated_points) / analytical_points
-    plt.plot(np.arange(0, ly), relative_error * 100)
+    abs_error = np.abs(simulated_points - analytical_points)
+    abs_error = np.where(abs_error < 10e-4, 0, abs_error)
+    plt.plot(np.arange(0, ly), abs_error)
 
     plt.xlabel(r'y position [lu]')
-    plt.ylabel(r'relative error [\%]')
+    plt.ylabel(r'absolute error [\%]')
 
-    plt.savefig(r'./figures/poiseuille_flow/relative_error.svg', bbox_inches='tight')
-    plt.savefig(r'./figures/poiseuille_flow/relative_error.pgf', bbox_inches='tight')
+    plt.savefig(r'./figures/poiseuille_flow/absolute_error.svg', bbox_inches='tight')
+    plt.savefig(r'./figures/poiseuille_flow/absolute_error.pgf', bbox_inches='tight')
 
 
 def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 30),

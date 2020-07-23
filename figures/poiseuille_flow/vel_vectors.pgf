@@ -2711,7 +2711,7 @@
 \definecolor{textcolor}{rgb}{0.000000,0.000000,0.000000}%
 \pgfsetstrokecolor{textcolor}%
 \pgfsetfillcolor{textcolor}%
-\pgftext[x=3.010556in,y=0.385681in,,top]{\color{textcolor}\rmfamily\fontsize{10.000000}{12.000000}\selectfont velocity in y-direction \(\displaystyle u\) [\(\displaystyle \frac{lu}{s}\)]}%
+\pgftext[x=3.010556in,y=0.385681in,,top]{\color{textcolor}\rmfamily\fontsize{10.000000}{12.000000}\selectfont velocity in x-direction \(\displaystyle \mathbf{u}_x\) [\(\displaystyle \frac{lu}{s}\)]}%
 \end{pgfscope}%
 \begin{pgfscope}%
 \pgfsetbuttcap%
