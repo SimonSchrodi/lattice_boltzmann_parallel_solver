@@ -179,10 +179,7 @@ def plot_nx_strouhal():
 
         lxs.append(int(file[file.rfind('_') + 1:file.rfind('.npy')]))
 
-        if lxs[-1] == 250:
-            vel_at_p = vel_at_p[140000:]
-        else:
-            vel_at_p = vel_at_p[70000:]
+        vel_at_p = vel_at_p[75000:100000]
 
         vel_at_p -= np.mean(vel_at_p)
         yf = np.fft.fft(vel_at_p)
