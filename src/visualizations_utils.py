@@ -7,8 +7,11 @@ import glob
 import re
 import collections
 from pygifsicle import optimize
+import os
 
 import matplotlib.cm as cm
+
+from lattice_boltzmann_method import strouhal_number
 
 
 def visualize_velocity_streamplot(velocity_field: np.ndarray, lattice_grid_shape: Tuple[int, int]):
@@ -127,3 +130,96 @@ def pngs_to_gif():
                    duration=0.5, loop=0)
 
     optimize(r'./figures/von_karman_vortex_shedding/png_to_gif.gif')
+
+
+def plot_reynolds_strouhal():
+    folder = r'./figures/von_karman_vortex_shedding/reynold_strouhal'
+    d = 40
+    u0 = 0.1
+    strouhal = []
+    reynolds = []
+    for file in glob.glob(folder + r"/*.npy"):
+        vel_at_p = np.load(file)
+        plt.plot(vel_at_p)
+        plt.savefig(file + '.svg')
+        plt.close()
+
+        vel_at_p = vel_at_p[70000:]
+
+        reynolds.append(int(file[file.rfind('_') + 1:file.rfind('.npy')]))
+
+        vel_at_p -= np.mean(vel_at_p)
+        yf = np.fft.fft(vel_at_p)
+        freq = np.fft.fftfreq(len(vel_at_p), 1)
+        vortex_frequency = np.abs(freq[np.argmax(np.abs(yf))])
+        strouhal.append(strouhal_number(vortex_frequency, d, u0))
+
+    strouhal = [x for _, x in sorted(zip(reynolds, strouhal))]
+    reynolds = np.sort(reynolds)
+    plt.plot(reynolds, strouhal)
+    plt.xlabel('Reynolds number')
+    plt.ylabel('Strouhal number')
+    plt.savefig(os.path.join(folder, "reynold_strouhal.svg"), bbox_inches='tight')
+    plt.savefig(os.path.join(folder, "reynold_strouhal.pgf"), bbox_inches='tight')
+
+
+def plot_nx_strouhal():
+    folder = r'./figures/von_karman_vortex_shedding/nx_strouhal'
+    d = 40
+    u0 = 0.1
+    strouhal = []
+    lxs = []
+    for file in glob.glob(folder + r"/*.npy"):
+        vel_at_p = np.load(file)
+        plt.plot(vel_at_p)
+        plt.savefig(file + '.svg')
+        plt.close()
+
+        vel_at_p = vel_at_p[70000:]
+
+        lxs.append(int(file[file.rfind('_') + 1:file.rfind('.npy')]))
+
+        vel_at_p -= np.mean(vel_at_p)
+        yf = np.fft.fft(vel_at_p)
+        freq = np.fft.fftfreq(len(vel_at_p), 1)
+        vortex_frequency = np.abs(freq[np.argmax(np.abs(yf))])
+        strouhal.append(strouhal_number(vortex_frequency, d, u0))
+
+    strouhal = [x for _, x in sorted(zip(lxs, strouhal))]
+    reynolds = np.sort(lxs)
+    plt.plot(reynolds, strouhal)
+    plt.xlabel('lx [lu]')
+    plt.ylabel('Strouhal number')
+    plt.savefig(os.path.join(folder, "nx_strouhal.svg"), bbox_inches='tight')
+    plt.savefig(os.path.join(folder, "nx_strouhal.pgf"), bbox_inches='tight')
+
+
+def plot_blockage_strouhal():
+    folder = r'./figures/von_karman_vortex_shedding/blockage_strouhal'
+    d = 40
+    u0 = 0.1
+    strouhal = []
+    lxs = []
+    for file in glob.glob(folder + r"/*.npy"):
+        vel_at_p = np.load(file)
+        plt.plot(vel_at_p)
+        plt.savefig(file + '.svg')
+        plt.close()
+
+        vel_at_p = vel_at_p[90000:]
+
+        lxs.append(float(file[file.rfind('_') + 1:file.rfind('.npy')]))
+
+        vel_at_p -= np.mean(vel_at_p)
+        yf = np.fft.fft(vel_at_p)
+        freq = np.fft.fftfreq(len(vel_at_p), 1)
+        vortex_frequency = np.abs(freq[np.argmax(np.abs(yf))])
+        strouhal.append(strouhal_number(vortex_frequency, d, u0))
+
+    strouhal = [x for _, x in sorted(zip(lxs, strouhal))]
+    reynolds = np.sort(lxs)
+    plt.plot(reynolds, strouhal)
+    plt.xlabel(r'blockage ratio [\%]')
+    plt.ylabel('Strouhal number')
+    plt.savefig(os.path.join(folder, "blockage_strouhal.svg"), bbox_inches='tight')
+    plt.savefig(os.path.join(folder, "blockage_strouhal.pgf"), bbox_inches='tight')

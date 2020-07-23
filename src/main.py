@@ -10,7 +10,7 @@ from experiments import \
      x_strouhal,
      scaling_test)
 
-from visualizations_utils import pngs_to_gif
+from visualizations_utils import pngs_to_gif, plot_reynolds_strouhal, plot_nx_strouhal, plot_blockage_strouhal
 
 import argparse
 
@@ -68,17 +68,20 @@ def main():
         reynolds_numbers = [40, 70, 100, 140, 170, 200]
         for re in reynolds_numbers:
             visc = 40 * 0.1 / re
-            x_strouhal(folder_name='reynold_strouhal', kinematic_viscosity=visc)
+            x_strouhal(folder_name='reynold_strouhal', kinematic_viscosity=visc, time_steps=200000)
+        plot_reynolds_strouhal()
     elif args.function == "nx_strouhal":
-        lxs = [100, 250, 500, 750, 1000, 1250]
+        lxs = [100, 180, 250, 500, 750, 1000]
         ly = 180
         for lx in lxs:
-            x_strouhal(folder_name='nx_strouhal', lattice_grid_shape=(lx, ly))
+            x_strouhal(folder_name='nx_strouhal', lattice_grid_shape=(lx, ly), time_steps=200000)
+        plot_nx_strouhal()
     elif args.function == "blockage_strouhal":
         lx = 420
         lys = [60, 100, 140, 180, 220, 260]
         for ly in lys:
             x_strouhal(folder_name='blockage_strouhal', lattice_grid_shape=(lx, ly))
+        plot_blockage_strouhal()
     elif args.function == "scaling_test":
         if args.lx is not None and args.ly is not None:
             scaling_test(folder_name='scaling_test', lattice_grid_shape=(lx, ly))
