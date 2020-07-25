@@ -594,7 +594,7 @@ def x_strouhal(folder_name: str,
         if 'reynold' in folder_name:
             reynolds_number = plate_size * inlet_velocity / kinematic_viscosity
             np.save(r'./figures/von_karman_vortex_shedding/' + folder_name + '/vel_at_p_' + str(
-                int(reynolds_number)) + '.npy', vel_at_p)
+                round(reynolds_number)) + '.npy', vel_at_p)
         elif 'nx' in folder_name:
             np.save(r'./figures/von_karman_vortex_shedding/' + folder_name + '/vel_at_p_' + str(int(lx)) + '.npy',
                     vel_at_p)

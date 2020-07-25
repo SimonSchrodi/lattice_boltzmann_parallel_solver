@@ -67,11 +67,11 @@ def main():
     elif args.function == "reynold_strouhal":
         reynolds_numbers = [40, 70, 100, 140, 170, 200]
         for re in reynolds_numbers:
-            visc = 40 * 0.1 / re
-            x_strouhal(folder_name='reynold_strouhal', kinematic_viscosity=visc, time_steps=200000)
+            vel = re * 0.04 / 40
+            x_strouhal(folder_name='reynold_strouhal', inlet_velocity=vel, time_steps=200000)
         plot_reynolds_strouhal()
     elif args.function == "nx_strouhal":
-        lxs = [100, 180, 250, 500, 750, 1000]
+        lxs = [260, 300]
         ly = 180
         for lx in lxs:
             x_strouhal(folder_name='nx_strouhal', lattice_grid_shape=(lx, ly), time_steps=200000)
