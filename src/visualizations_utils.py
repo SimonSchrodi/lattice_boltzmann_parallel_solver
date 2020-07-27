@@ -146,7 +146,9 @@ def plot_reynolds_strouhal():
 
         reynolds.append(int(file[file.rfind('_') + 1:file.rfind('.npy')]))
         if reynolds[-1] == 40:
-            vel_at_p = vel_at_p[140000:]
+            vel_at_p = vel_at_p[150000:]
+        elif reynolds[-1] == 70:
+            vel_at_p = vel_at_p[125000:]
         else:
             vel_at_p = vel_at_p[70000:]
 
@@ -179,7 +181,12 @@ def plot_nx_strouhal():
 
         lxs.append(int(file[file.rfind('_') + 1:file.rfind('.npy')]))
 
-        vel_at_p = vel_at_p[75000:100000]
+        if lxs[-1] == 260:
+            vel_at_p = vel_at_p[125000:]
+        elif lxs[-1] == 300:
+            vel_at_p = vel_at_p[90000:]
+        else:
+            vel_at_p = vel_at_p[75000:100000]
 
         vel_at_p -= np.mean(vel_at_p)
         yf = np.fft.fft(vel_at_p)

@@ -67,8 +67,15 @@ def main():
     elif args.function == "reynold_strouhal":
         reynolds_numbers = [40, 70, 100, 140, 170, 200]
         for re in reynolds_numbers:
-            vel = re * 0.04 / 40
-            x_strouhal(folder_name='reynold_strouhal', inlet_velocity=vel, time_steps=200000)
+            if re > 130:
+                visc = 0.03
+                vel = re * visc / 40
+                x_strouhal(folder_name='reynold_strouhal', inlet_velocity=vel, kinematic_viscosity=visc,
+                           time_steps=200000)
+            else:
+                visc = 40*0.1/re
+                x_strouhal(folder_name='reynold_strouhal', inlet_velocity=vel, kinematic_viscosity=visc,
+                           time_steps=200000)
         plot_reynolds_strouhal()
     elif args.function == "nx_strouhal":
         lxs = [260, 300]
@@ -94,4 +101,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    #main()
+    plot_reynolds_strouhal()
