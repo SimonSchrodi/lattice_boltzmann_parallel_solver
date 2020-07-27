@@ -412,19 +412,19 @@ We choose the following simulation parameters for our experiments:
 \begin{itemize}
 \setlength\itemsep{0.15em}
 \item lattice grid shape $=50\times 50$
-\item $\omega=1.0$
+\item relaxation parameter $\omega=1.0$
 \item Sinusoidal density in x-direction $\rho(\mathbf{x},0)=\rho_{0}+\epsilon_{\rho}\sin(\frac{2\pi x}{l_x})$
 \begin{itemize}
 \setlength\itemsep{0.1em}
-\item $\rho_{0}(\mathbf{x})=0.5$
-\item $\epsilon_{\rho}=0.08$
-\item $\mathbf{u}_{initial}(\mathbf{x})=0.0$
+\item Shift of density in y-direction $\rho_{0}(\mathbf{x})=0.5$
+\item amplitude $\epsilon_{\rho}=0.08$
+\item initial velocity $\mathbf{u}_{initial}(\mathbf{x})=0.0$
 \end{itemize}
 \item Sinusoidal velocity in y-direction $\mathbf{u}_{x}(\mathbf{x},0)=\epsilon_{\mathbf{u}}\sin(\frac{2\pi y}{l_y})$
 \begin{itemize}
 \setlength\itemsep{0.1em}
-\item $\rho_{initial}(\mathbf{x})=0.0$
-\item $\epsilon_{\mathbf{u}}=0.08$
+\item initial density $\rho_{initial}(\mathbf{x})=0.0$
+\item amplitude $\epsilon_{\mathbf{u}}=0.08$
 \end{itemize}
 \end{itemize}
 
@@ -472,11 +472,10 @@ In our experiment, we apply the bounce-back boundary condition at the top wall, 
 \begin{itemize}
 \setlength\itemsep{0.15em}
 \item lattice grid shape $=20\times 30$
-\item $\omega=1.0$
-\item $U=0.05$
-\item $\rho_{initial}(\mathbf{x})=1.0$
-\item $\mathbf{u}_{initial}(\mathbf{x})=0.0$
-\item time steps $=4000$
+\item relaxation parameter $\omega=1.0$
+\item velocity of the wall $U=0.05$
+\item initial density $\rho_{initial}(\mathbf{x})=1.0$
+\item initial velocity $\mathbf{u}_{initial}(\mathbf{x})=0.0$
 \end{itemize}
 
 Fig. \ref{fig:Couette_vectors}(a) shows the visual results of the experiment. We can observe that the maximum velocity in x-direction is maximal at the bottom wall and minimal at the top wall. At the bottom wall the velocity in x-direction is exactly the same as the tangential velocity of $0.05\frac{lu}{s}$ of the moving wall. At the top wall the velocity in x-direction is equal to $0$. Other velocities at position $y$ can be linearly interpolated. When we linearly interpolate those points we get a slope of $m=-\frac{1}{600}$ and intercept of $c=0.05$. When comparing this to the analytical solution from eq. \ref{eq:couetteEq}, this is exactly the same. This results is verified by fig. \ref{fig:Couette_vectors}(b) which shows no absolute error (i.e. $0$). Note, that we set values less than $10^{-4}$ to $0$, since we attribute those tiny absolute errors to numerical instabilities.
@@ -512,11 +511,11 @@ We choose the following simulation parameters for our experiments about the plan
 \begin{itemize}
 \setlength\itemsep{0.15em}
 \item lattice grid shape $=200\times 60$
-\item $\omega=1.5$
-\item $p_{out}=\frac{1}{3}$
-\item $\Delta p=0.001$
-\item $\rho_{initial}(\mathbf{x})=1.0$
-\item $\mathbf{u}_{initial}(\mathbf{x})=0.0$
+\item relaxation parameter $\omega=1.5$
+\item outgoing pressure $p_{out}=\frac{1}{3}$
+\item pressure gradient $\Delta p=0.001$
+\item initial density $\rho_{initial}(\mathbf{x})=1.0$
+\item initial velocity$\mathbf{u}_{initial}(\mathbf{x})=0.0$
 \end{itemize}
 
 Fig. \ref{fig:Poiseuille_vectors}(a) shows the visual results of our experiment. We can observe that the velocity profile has a parabolic shape. The velocity profiles of channels $x=1$ and $x=100$  match the analytical solution described in eq. \ref{eq:poiseuilleEq} almost exactly. Also we can observe that the velocities in x-direction of both channels overlap. When comparing the area under both curves we get a difference of less than $0.02\%$. This shows that the flow behaves similarly at the inlet as well as in the middle. Its maximal velocity is in the middle (i.e. $y=100$) and the minimal velocities are at the top and bottom boundary. The maximal velocity is $0.01\frac{lu}{s}$ and the minimal velocities are $0\frac{lu}{s}$. The other velocities can be fitted by a quadratic function (i.e. eq. \ref{eq:poiseuilleEq}). When we compute the quadratic function with SciPy's function \textsf{curve\textunderscore fit}, we get $-4.48*10^{-5}y^{2}+2.64*10^{-3}y+1.34*10^{-3}$. This formula exactly matches the analytical solution described in eq. \ref{eq:poiseuilleEq}. This result is verified by fig. \ref{fig:Poiseuille_vectors}(b) which shows there is almost no absolute error between the simulated solution at $x=100$ and the analytical solution but on the boundaries. Note, that we clip values smaller than $10^{-4}$ to $0$, since we attribute those small absolute errors to numerical instabilities. The slight higher absolute errors at the boundaries are probably due to the some inaccuracies that are introduced by the bounce-back boundary condition. \cite{Kruger.2016}
@@ -545,6 +544,21 @@ Fig. \ref{fig:Poiseuille_evolution} shows the evolution of the Poiseuile Flow. W
 \end{figure}
 \section{Von K\'{a}rm\'{a}n's vortex street}\label{sec-karman}
 The von K\'{a}rm\'{a}n's vortex street is a well known phenomenon in fluid dynamics. It describes a process in which counter-rotating vortices are formed behind a body being flowed around by some fluid.
+
+In our experiments, we apply periodic boundary conditions at the bottom and top wall. We apply the inlet and outlet condition at the inlet and outlet nodes. We choose a thin plate as body and enforce bounce-back conditions. For the corners of the plate we apply only two channels instead of three. For example consider the upper corner from the left side. There we apply only the bounce-back condition on channels $1$ and $8$.
+We choose the following simulation parameters for our experiments about the von K\'{a}rm\'{a}n's vortex street:
+\begin{itemize}
+\setlength\itemsep{0.15em}
+\item lattice grid shape $=420\times 180$
+\item plate size $d=40$
+\item initial density $\rho_{initial}(\mathbf{x})=1$
+\item initial velocity $\mathbf{u}_{initial, x}(\mathbf{x})=0.1$ and $\mathbf{u}_{initial, y}(\mathbf{x})=0$
+\item inlet density $\rho_{inlet}(\mathbf{x})=1$
+\item inlet velocity $\mathbf{u}_{inlet}(\mathbf{x})=0.1$
+\item kinematic viscosity $\nu=0.04$
+\end{itemize}
+
+Fig. \ref{fig:vonKarmanQualitative} shows qualitative results of our parallel implementation. We show the magnitude of the velocity $||\mathbf{u}||$ at each position $\mathbf{x}$. From the initial state there builds up an area after the plate in which velocities are smaller. After around $30000$ time steps it reached the end of our computational domain. After around $40000$ time steps it gets unstable and starts to swing. After $60000$ time steps we can observe the counter-rotating vortices behind the plate. The swinging stays stable till the end of the simulation.
 \begin{figure}
   \begin{center}
   \subfigure[Step 0]{\includegraphics[width=0.3\textwidth]{../figures/von_karman_vortex_shedding/all_png_parallel/0.png}}
@@ -568,6 +582,43 @@ The von K\'{a}rm\'{a}n's vortex street is a well known phenomenon in fluid dynam
   \end{center}
 \end{figure}
 
+In further experiments we study the relationship between different quantities, i.e. \textit{Reynolds number}, length of the domain as well as \textit{blockage ratio}, and the \textit{Strouhal number}.
+The Reynolds number is a measure of inertial to viscous forces in the flow of a fluid around a body. It is defined as follows:
+\begin{equation}
+\label{eq-reynold}
+Re=\frac{lU}{\nu},
+\end{equation}
+where $l$ is the characteristic length parameter of the body, $U$ is the free stream flow velocity and $\nu$ is the free stream kinematic viscosity. One key property of the Reynolds number is that two incompressible flow systems are dynamically similar, if they have the same Reynolds number and same geometry. Note, that the Reynolds number is non-dimensional, which follows directly from eq. \ref{eq-reynold}, i.e. the physical quantities cancel themselves out.
+
+The Strouhal number is another non-dimensional number, which defines the oscillatory behavior of flows. It is defined as follows
+\begin{equation}
+\label{eq-strouhal}
+St=\frac{fl}{U},
+\end{equation}
+where $f$ is the dominant flow frequency, $l$ is the characteristic length parameter of the body and $U$ is the free stream flow velocity.
+
+\begin{figure}
+  \begin{center}
+    \subfigure[Strouhal number as function of the Reynolds number]{	\scalebox{0.4}{\input{../figures/von_karman_vortex_shedding/reynold_strouhal/reynold_strouhal.pgf}}}
+        \subfigure[Strouhal number as function of the width of the simulation domain]{	\scalebox{0.4}{\input{../figures/von_karman_vortex_shedding/nx_strouhal/nx_strouhal.pgf}}}
+            \subfigure[Strouhal number as function of the blockage ratio]{	\scalebox{0.4}{\input{../figures/von_karman_vortex_shedding/blockage_strouhal/blockage_strouhal.pgf}}}
+   \caption{Results of our experiments about the relationship between the Reynolds number, width of the simulation domain as well as blockage ration and Strouhal number.}
+  \label{fig:vonKarmanExperiments}
+  \end{center}
+\end{figure}
+
+For our experiment in fig. \ref{fig:vonKarmanExperiments}(a) we vary the kinematic viscosity $\nu$ for $Re\leq 100$ and the free stream flow velocity $U$ for $Re>100$, while all other parameters stay the same as described in the list above. We found that for $Re=200$ it works best to additionally reduce the kinematic viscosity $\nu=0.035$, since otherwise the systems becomes unstable.
+In fig. \ref{fig:vonKarmanExperiments}(a) we can observe that there is a non-linear relationship between the Reynolds number and Strouhal number.
+
+For our experiment in fig. \ref{fig:vonKarmanExperiments}(b) we vary for different widths of the simulation domain while all other parameters stay the same as described in the list above. We can observe that the Strouhal number stays constant for different width of the  simulation domain except for values between $200$ and $500$.
+
+For our experiment we vary the blockage ration. The blockage ratio specifies the aspect ratio between the size of the plate $d$ and the height of the simulation domain $l_y$. It is defined as follows:
+\begin{equation}
+\label{eq-strouhal}
+B=\frac{d}{l_y}.
+\end{equation}
+We vary the blockage ration by changing the height of the simulation domain $l_y$. Note that we could also change the size of the plate $d$. However, this would change the Reynolds number and thus we would have to change the kinematic viscosity $\nu$ or free stream flow velocity $U$, accordingly.
+In fig. \ref{fig:vonKarmanExperiments}(c) we can observe that there is a linear relationship between the blockage ratio and Strouhal number. Thus if we change the size of the plate when we for example change the Reynolds number of we change the height of the simulation domain we have to proportionally change the height of the simulation domain or size of the plate, respectively.
 \section{Scaling tests}\label{sec-scaling}
 One key advantage of the parallelization is its likely speedup. However, according to Amdahl's law \cite{Amdahl.1967} the speedup $S$ is described as follows
 \begin{equation}
