@@ -74,8 +74,7 @@ def main():
                            time_steps=200000)
             else:
                 visc = 40*0.1/re
-                x_strouhal(folder_name='reynold_strouhal', kinematic_viscosity=visc,
-                           time_steps=200000)
+                x_strouhal(folder_name='reynold_strouhal', kinematic_viscosity=visc, time_steps=200000)
         plot_reynolds_strouhal()
     elif args.function == "nx_strouhal":
         lxs = [260, 300]
@@ -101,5 +100,4 @@ def main():
 
 
 if __name__ == "__main__":
-    #main()
-    plot_reynolds_strouhal()
+    main()
