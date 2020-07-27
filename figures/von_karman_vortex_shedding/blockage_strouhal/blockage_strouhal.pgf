@@ -334,7 +334,6 @@
 \pgfsetstrokecolor{currentstroke}%
 \pgfsetdash{}{0pt}%
 \pgfpathmoveto{\pgfqpoint{0.779159in}{0.683123in}}%
-\pgfpathlineto{\pgfqpoint{1.025109in}{0.988578in}}%
 \pgfpathlineto{\pgfqpoint{1.380371in}{0.988578in}}%
 \pgfpathlineto{\pgfqpoint{1.938639in}{1.294032in}}%
 \pgfpathlineto{\pgfqpoint{2.943522in}{2.210396in}}%
