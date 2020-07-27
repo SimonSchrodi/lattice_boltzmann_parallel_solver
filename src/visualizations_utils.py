@@ -156,7 +156,13 @@ def plot_reynolds_strouhal():
         yf = np.fft.fft(vel_at_p)
         freq = np.fft.fftfreq(len(vel_at_p), 1)
         vortex_frequency = np.abs(freq[np.argmax(np.abs(yf))])
-        strouhal.append(strouhal_number(vortex_frequency, d, u0))
+        if reynolds[-1] > 130:
+            visc = 0.03
+            u = reynolds[-1] * visc / 40
+            strouhal.append(strouhal_number(vortex_frequency, d, u))
+        else:
+            u = 0.1
+            strouhal.append(strouhal_number(vortex_frequency, d, u))
 
     strouhal = [x for _, x in sorted(zip(reynolds, strouhal))]
     reynolds = np.sort(reynolds)
@@ -183,10 +189,12 @@ def plot_nx_strouhal():
 
         if lxs[-1] == 260:
             vel_at_p = vel_at_p[125000:]
-        elif lxs[-1] == 300:
+        elif lxs[-1] == 300 or lxs[-1] == 350 or lxs[-1] == 700:
             vel_at_p = vel_at_p[90000:]
+        elif lxs[-1] == 100:
+            vel_at_p = vel_at_p[175000:]
         else:
-            vel_at_p = vel_at_p[75000:100000]
+            vel_at_p = vel_at_p[75000:]
 
         vel_at_p -= np.mean(vel_at_p)
         yf = np.fft.fft(vel_at_p)
