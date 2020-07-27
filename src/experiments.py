@@ -637,12 +637,13 @@ def scaling_test(folder_name: str,
 
     # main loop
     if rank == 0:
-        start = time.time()
+        start = time.time_ns()
     for i in range(time_steps):
         f, density, velocity = lattice_boltzmann_step(f, density, velocity, omega, bound_func, communication_func)
     if rank == 0:
-        end = time.time()
-        runtime = end - start
+        end = time.time_ns()
+        runtime_ns = end - start
+        runtime = runtime_ns / 10e9
         mlups = lx * ly * time_steps / runtime
         np.save(r'./figures/von_karman_vortex_shedding/' + folder_name + '/' + str(
             int(lx)) + '_' + str(int(ly)) + '_' + str(int(size)) + '.npy', np.array([mlups]))
