@@ -10,7 +10,8 @@ from experiments import \
      x_strouhal,
      scaling_test)
 
-from visualizations_utils import pngs_to_gif, plot_reynolds_strouhal, plot_nx_strouhal, plot_blockage_strouhal, plot_scaling_test
+from visualizations_utils import pngs_to_gif, plot_reynolds_strouhal, plot_nx_strouhal, plot_blockage_strouhal, \
+    plot_scaling_test
 
 import argparse
 

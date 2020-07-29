@@ -240,6 +240,7 @@ def plot_blockage_strouhal():
     plt.savefig(os.path.join(folder, "blockage_strouhal.svg"), bbox_inches='tight')
     plt.savefig(os.path.join(folder, "blockage_strouhal.pgf"), bbox_inches='tight')
 
+
 def plot_scaling_test(lattice_grid_shape: Tuple[int, int] = (420, 180)):
     lx, ly = lattice_grid_shape
     folder = r'./figures/von_karman_vortex_shedding/scaling_test'
