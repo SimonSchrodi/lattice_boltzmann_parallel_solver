@@ -1,5 +1,10 @@
+"""
+This file only contains test for the different milestones during the project during development and potentially
+contains errors in the implementation
+"""
+
 import numpy as np
-from scipy.optimize import curve_fit, least_squares
+from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 from tqdm import tqdm, trange
 
@@ -7,21 +12,50 @@ from mpi4py import MPI
 
 import os
 
-from lattice_boltzmann_method import compute_density, compute_velocity_field, streaming, equilibrium_distr_func, \
-    lattice_boltzmann_step, reynolds_number, strouhal_number
-from visualizations_utils import visualize_velocity_quiver, visualize_velocity_streamplot, \
-    visualize_density_contour_plot, visualize_density_surface_plot
+from lattice_boltzmann_method import (
+    compute_density,
+    compute_velocity_field,
+    streaming,
+    equilibrium_distr_func,
+    lattice_boltzmann_step,
+    reynolds_number,
+    strouhal_number
+)
 
-from initial_values import milestone_2_test_1_initial_val, milestone_2_test_2_initial_val, sinusoidal_density_x, \
-    sinusoidal_velocity_x, density_1_velocity_0_initial, density_1_velocity_x_u0_velocity_y_0_initial
+from visualizations_utils import (
+    visualize_velocity_quiver,
+    visualize_velocity_streamplot,
+    visualize_density_contour_plot,
+    visualize_density_surface_plot
+)
 
-from boundary_conditions import rigid_wall, moving_wall, periodic_with_pressure_variations, inlet, outlet, \
+from initial_values import (
+    milestone_2_test_1_initial_val,
+    milestone_2_test_2_initial_val,
+    sinusoidal_density_x,
+    sinusoidal_velocity_x,
+    density_1_velocity_0_initial,
+    density_1_velocity_x_u0_velocity_y_0_initial
+)
+
+from boundary_conditions import (
+    rigid_wall,
+    moving_wall,
+    periodic_with_pressure_variations,
+    inlet,
+    outlet,
     rigid_object
+)
 
-from parallelization_utils import communication, x_in_process, y_in_process, get_local_coords, \
-    global_coord_to_local_coord, global_to_local_direction, save_mpiio, get_xy_size
-
-from typing import Callable
+from parallelization_utils import (
+    communication,
+    x_in_process,
+    y_in_process,
+    get_local_coords,
+    global_coord_to_local_coord,
+    global_to_local_direction,
+    save_mpiio,
+    get_xy_size)
 
 
 def milestone_1():

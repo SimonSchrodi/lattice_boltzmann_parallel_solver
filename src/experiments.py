@@ -15,16 +15,30 @@ import time
 
 from mpi4py import MPI
 
-from initial_values import sinusoidal_density_x, sinusoidal_velocity_x, density_1_velocity_0_initial, \
+from initial_values import (
+    sinusoidal_density_x,
+    sinusoidal_velocity_x,
+    density_1_velocity_0_initial,
     density_1_velocity_x_u0_velocity_y_0_initial
+)
+
 from lattice_boltzmann_method import equilibrium_distr_func, lattice_boltzmann_step
-from parallelization_utils import communication, x_in_process, y_in_process, get_local_coords, \
-    global_coord_to_local_coord, global_to_local_direction, save_mpiio, get_xy_size
+from parallelization_utils import (
+    communication,
+    x_in_process,
+    y_in_process,
+    get_local_coords,
+    global_coord_to_local_coord,
+    global_to_local_direction,
+    save_mpiio,
+    get_xy_size
+)
 
-from boundary_utils import couette_flow_boundary_conditions, poiseuille_flow_boundary_conditions, \
+from boundary_utils import (
+    couette_flow_boundary_conditions,
+    poiseuille_flow_boundary_conditions,
     parallel_von_karman_boundary_conditions
-
-from boundary_conditions import inlet, outlet
+)
 
 matplotlib.use('pgf')
 matplotlib.rcParams.update({
@@ -44,6 +58,17 @@ def plot_evolution_of_density(lattice_grid_shape: Tuple[int, int] = (50, 50),
                               omega: float = 1.0,
                               time_steps: int = 2500,
                               number_of_visualizations: int = 20):
+    """
+    Executes the experiment for shear wave decay given a sinusoidal density and saves the results.
+
+    Args:
+        lattice_grid_shape: lattice size
+        initial_p0: shift of density
+        epsilon: amplitude of sine wave
+        omega: relaxation parameter
+        time_steps: number of time steps for simulation
+        number_of_visualizations: total number of visualization. Has to be divisible by 5.
+    """
     assert 0 < omega < 2
     assert time_steps > 0
     assert number_of_visualizations % 5 == 0
@@ -79,6 +104,16 @@ def plot_evolution_of_velocity(lattice_grid_shape: Tuple[int, int] = (50, 50),
                                omega: float = 1.0,
                                time_steps: int = 2500,
                                number_of_visualizations: int = 20):
+    """
+    Executes the experiment for shear wave decay given a sinusoidal velocity and saves the results.
+
+    Args:
+        lattice_grid_shape: lattice size
+        epsilon: amplitude of sine wave
+        omega: relaxation parameter
+        time_steps: number of time steps for simulation
+        number_of_visualizations: total number of visualization. Has to be divisible by 5
+    """
     assert 0 < omega < 2
     assert time_steps > 0
     assert number_of_visualizations % 5 == 0
@@ -115,6 +150,18 @@ def plot_measured_viscosity_vs_omega(lattice_grid_shape: Tuple[int, int] = (50, 
                                      epsilon_v: float = 0.08,
                                      time_steps: int = 2500,
                                      omega_discretization: int = 50):
+    """
+    Executes the experiment to study the relationship between theoretical kinematic viscosity and relaxation parameter
+    omega and saves the results.
+
+    Args:
+        lattice_grid_shape: lattice size
+        initial_p0: shift of density
+        epsilon_p: amplitude of density sine wave
+        epsilon_v: amplitude of velocity sine wave
+        time_steps: number of time steps
+        omega_discretization: number of how many omegas should be discretized
+    """
     fig, ax = plt.subplots(1, 2, sharex=True, sharey=True)
     omega = np.linspace(0.01, 1.99, omega_discretization)
 
@@ -181,6 +228,16 @@ def plot_couette_flow_evolution(lattice_grid_shape: Tuple[int, int] = (20, 20),
                                 U: float = 0.01,
                                 time_steps: int = 4000,
                                 number_of_visualizations: int = 30):
+    """
+    Executes the couette flow evolution experiment and saves the results.
+
+    Args:
+        lattice_grid_shape:
+        omega: relaxation parameter
+        U: velocity of moving wall
+        time_steps: number of time steps for simulation
+        number_of_visualizations: total number of visualizations. Has to be divisible by 5.
+    """
     assert number_of_visualizations % 5 == 0
     assert U <= 1 / np.sqrt(3)
 
@@ -248,6 +305,16 @@ def plot_couette_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (20, 30)
                                   omega: float = 1.0,
                                   U: float = 0.05,
                                   time_steps: int = 5000):
+    """
+    Executes the couette flow experiment and save results. Results contain comparision with analytical solution,
+    absolute error, linear regression of simulation results
+
+    Args:
+        lattice_grid_shape: lattice size
+        omega: relaxation parameter
+        U: velocity of moving wall
+        time_steps: number of time steps for simulation
+    """
     assert U <= 1 / np.sqrt(3)
     lx, ly = lattice_grid_shape
 
@@ -311,6 +378,17 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
                                      omega: float = 1.5,
                                      delta_p: float = 0.001,
                                      time_steps: int = 40000):
+    """
+    Executes the poiseuille flow experiment. Results contain qualitative comparison to analytical solution,
+    difference of area under curve at the inlet and middle channel, pressure along the centerline and the
+    absolute error.
+
+    Args:
+        lattice_grid_shape: lattice size
+        omega: relaxation parameter
+        delta_p: pressure difference
+        time_steps: number of time steps of the simulation
+    """
     lx, ly = lattice_grid_shape
 
     rho_0 = 1
@@ -431,6 +509,16 @@ def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 3
                                    delta_p: float = 0.001111,
                                    time_steps: int = 10000,
                                    number_of_visualizations: int = 30):
+    """
+    Executes the poiseuille flow evolution experiment and saves results.
+
+    Args:
+        lattice_grid_shape: lattice size
+        omega: relaxation parameter
+        delta_p: pressure difference at inlet and outlet
+        time_steps: number of time steps for the simulation
+        number_of_visualizations: total number of visualization. Has to be divisible by 5.
+    """
     assert number_of_visualizations % 5 == 0
 
     lx, ly = lattice_grid_shape
@@ -499,6 +587,18 @@ def plot_parallel_von_karman_vortex_street(lattice_grid_shape: Tuple[int, int] =
                                            inlet_velocity: float = 0.1,
                                            kinematic_viscosity: float = 0.04,
                                            time_steps: int = 100000):
+    """
+    Executes the parallel version of the code of the von Karman vortex street and saves each 100 time steps the
+    current velocity magnitude field.
+
+    Args:
+        lattice_grid_shape: lattice size
+        plate_size: size of the plate
+        inlet_density: density into the domain
+        inlet_velocity: velocity into the domain
+        kinematic_viscosity: kinematic viscosity
+        time_steps: number of time steps for simulation
+    """
     # setup
     lx, ly = lattice_grid_shape
     omega = np.reciprocal(3 * kinematic_viscosity + 0.5)
@@ -554,6 +654,19 @@ def x_strouhal(folder_name: str,
                inlet_velocity: float = 0.1,
                kinematic_viscosity: float = 0.04,
                time_steps: int = 100000):
+    """
+    General functions to execute experiments to study the relationship of the strouhal numbers to a given x
+    (e.g. reynolds number, nx, blockage ratio)
+
+    Args:
+        folder_name: folder to save the files to
+        lattice_grid_shape: lattice size
+        plate_size: size of the plate
+        inlet_density: density into the domain
+        inlet_velocity: velocity into the domain
+        kinematic_viscosity: kinematic viscosity
+        time_steps: number of time steps for the simulation
+    """
     # setup
     lx, ly = lattice_grid_shape
     omega = np.reciprocal(3 * kinematic_viscosity + 0.5)
@@ -614,6 +727,18 @@ def scaling_test(folder_name: str,
                  inlet_velocity: float = 0.1,
                  kinematic_viscosity: float = 0.04,
                  time_steps: int = 20000):
+    """
+    Executes the scaling test. Measures the time for simulation and saves results.
+
+    Args:
+        folder_name: folder where to save results
+        lattice_grid_shape: lattice size
+        plate_size: size of plate
+        inlet_density: density into the domain
+        inlet_velocity: velocity into the domain
+        kinematic_viscosity: kinematic viscosity
+        time_steps: number of time steps for simulation
+    """
     # setup
     lx, ly = lattice_grid_shape
     omega = np.reciprocal(3 * kinematic_viscosity + 0.5)
