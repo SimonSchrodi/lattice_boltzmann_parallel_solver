@@ -506,7 +506,7 @@ def plot_poiseuille_flow_vel_vectors(lattice_grid_shape: Tuple[int, int] = (200,
 
 def plot_poiseuille_flow_evolution(lattice_grid_shape: Tuple[int, int] = (200, 30),
                                    omega: float = 1.5,
-                                   delta_p: float = 0.001111,
+                                   delta_p: float = 0.001,
                                    time_steps: int = 10000,
                                    number_of_visualizations: int = 30):
     """
@@ -653,7 +653,7 @@ def x_strouhal(folder_name: str,
                inlet_density: float = 1.0,
                inlet_velocity: float = 0.1,
                kinematic_viscosity: float = 0.04,
-               time_steps: int = 100000):
+               time_steps: int = 200000):
     """
     General functions to execute experiments to study the relationship of the strouhal numbers to a given x
     (e.g. reynolds number, nx, blockage ratio)

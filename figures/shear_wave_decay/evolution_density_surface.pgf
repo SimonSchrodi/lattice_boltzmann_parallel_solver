@@ -21,6 +21,8 @@
 %%   \import{<path to file>}{<filename>.pgf}
 %%
 %% Matplotlib used the following preamble
+%%   \usepackage[utf8x]{inputenc}
+%%   \usepackage{amsmath}
 %%
 \begingroup%
 \makeatletter%
