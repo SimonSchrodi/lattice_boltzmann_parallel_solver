@@ -168,7 +168,7 @@ def rigid_object(boundary: np.ndarray) -> Callable[[np.ndarray, np.ndarray], np.
 
 
 def moving_wall(boundary: np.ndarray, u_w: np.ndarray, avg_density: np.ndarray) \
-        -> Callable[[np.ndarray, np.ndarray, np.ndarray], np.ndarray]:
+        -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
     """
     Returns function implementing moving wall
 

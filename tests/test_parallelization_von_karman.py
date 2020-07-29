@@ -11,7 +11,6 @@ sys.path.insert(1, './src')
 
 from parallelization_utils import x_in_process, y_in_process, save_mpiio, global_to_local_direction, get_local_coords, global_coord_to_local_coord, communication, get_xy_size
 
-from boundary_conditions import inlet, outlet
 from boundary_utils import parallel_von_karman_boundary_conditions
 from lattice_boltzmann_method import equilibrium_distr_func, lattice_boltzmann_step
 from initial_values import density_1_velocity_x_u0_velocity_y_0_initial
