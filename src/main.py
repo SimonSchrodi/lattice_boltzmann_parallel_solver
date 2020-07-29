@@ -1,17 +1,23 @@
-from experiments import \
-    (plot_evolution_of_density,
-     plot_evolution_of_velocity,
-     plot_measured_viscosity_vs_omega,
-     plot_couette_flow_evolution,
-     plot_couette_flow_vel_vectors,
-     plot_poiseuille_flow_vel_vectors,
-     plot_poiseuille_flow_evolution,
-     plot_parallel_von_karman_vortex_street,
-     x_strouhal,
-     scaling_test)
+from experiments import (
+    plot_evolution_of_density,
+    plot_evolution_of_velocity,
+    plot_measured_viscosity_vs_omega,
+    plot_couette_flow_evolution,
+    plot_couette_flow_vel_vectors,
+    plot_poiseuille_flow_vel_vectors,
+    plot_poiseuille_flow_evolution,
+    plot_parallel_von_karman_vortex_street,
+    x_strouhal,
+    scaling_test
+)
 
-from visualizations_utils import pngs_to_gif, plot_reynolds_strouhal, plot_nx_strouhal, plot_blockage_strouhal, \
+from visualizations_utils import (
+    pngs_to_gif,
+    plot_reynolds_strouhal,
+    plot_nx_strouhal,
+    plot_blockage_strouhal,
     plot_scaling_test
+)
 
 import argparse
 

@@ -133,6 +133,9 @@ def pngs_to_gif():
 
 
 def plot_reynolds_strouhal():
+    """
+    Creates plot for strouhal number as function of reynolds number
+    """
     folder = r'./figures/von_karman_vortex_shedding/reynold_strouhal'
     d = 40
     strouhal = []
@@ -173,6 +176,9 @@ def plot_reynolds_strouhal():
 
 
 def plot_nx_strouhal():
+    """
+    Creates plot for strouhal number as function of lattice grid width nx
+    """
     folder = r'./figures/von_karman_vortex_shedding/nx_strouhal'
     d = 40
     u0 = 0.1
@@ -211,6 +217,9 @@ def plot_nx_strouhal():
 
 
 def plot_blockage_strouhal():
+    """
+    Creates plot for strouhal number as function of the blockage ratio
+    """
     folder = r'./figures/von_karman_vortex_shedding/blockage_strouhal'
     d = 40
     u0 = 0.1
@@ -242,6 +251,9 @@ def plot_blockage_strouhal():
 
 
 def plot_scaling_test(lattice_grid_shape: Tuple[int, int] = (420, 180)):
+    """
+    Creates plot for MLUPS as a function of MPI processes
+    """
     lx, ly = lattice_grid_shape
     folder = r'./figures/von_karman_vortex_shedding/scaling_test'
     mlups = []
