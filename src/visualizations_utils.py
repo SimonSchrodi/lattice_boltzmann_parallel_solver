@@ -135,7 +135,6 @@ def pngs_to_gif():
 def plot_reynolds_strouhal():
     folder = r'./figures/von_karman_vortex_shedding/reynold_strouhal'
     d = 40
-    u0 = 0.1
     strouhal = []
     reynolds = []
     for file in glob.glob(folder + r"/*.npy"):
@@ -240,3 +239,21 @@ def plot_blockage_strouhal():
     plt.ylabel('Strouhal number')
     plt.savefig(os.path.join(folder, "blockage_strouhal.svg"), bbox_inches='tight')
     plt.savefig(os.path.join(folder, "blockage_strouhal.pgf"), bbox_inches='tight')
+
+def plot_scaling_test(lattice_grid_shape: Tuple[int, int] = (420, 180)):
+    lx, ly = lattice_grid_shape
+    folder = r'./figures/von_karman_vortex_shedding/scaling_test'
+    mlups = []
+    n = []
+    for file in glob.glob(folder + "/" + str(lx) + "_" + str(ly) + "*.npy"):
+        mlups.append(np.load(file) / 10e6)
+        n.append(int(file[file.rfind('_') + 1:file.rfind('.npy')]))
+        print(n[-1], mlups[-1])
+
+    mlups = [x for _, x in sorted(zip(n, mlups))]
+    n = np.sort(n)
+    plt.loglog(n, mlups)
+    plt.xlabel('Number of MPI processes')
+    plt.ylabel('Million lattice operations per second')
+    plt.savefig(os.path.join(folder, "scaling_test_" + str(lx) + "_" + str(ly) + ".svg"), bbox_inches='tight')
+    plt.savefig(os.path.join(folder, "scaling_test_" + str(lx) + "_" + str(ly) + ".pgf"), bbox_inches='tight')
