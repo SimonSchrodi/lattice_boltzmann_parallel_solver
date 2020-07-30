@@ -261,7 +261,6 @@ def plot_scaling_test(lattice_grid_shape: Tuple[int, int] = (420, 180)):
     for file in glob.glob(folder + "/" + str(lx) + "_" + str(ly) + "*.npy"):
         mlups.append(np.load(file) / 10e6)
         n.append(int(file[file.rfind('_') + 1:file.rfind('.npy')]))
-        print(n[-1], mlups[-1])
 
     mlups = [x for _, x in sorted(zip(n, mlups))]
     n = np.sort(n)
