@@ -1234,3 +1234,7 @@
 \end{pgfpicture}%
 \makeatother%
 \endgroup%
+fscope}%
+\end{pgfpicture}%
+\makeatother%
+\endgroup%
