@@ -206,7 +206,7 @@ def main():
             )
         plot_blockage_strouhal()
     elif args.function == "scaling_test":
-        default_params = list(get_default_args(plot_scaling_test).values())
+        default_params = list(get_default_args(scaling_test).values())
         scaling_test(
             folder_name='scaling_test',
             lattice_grid_shape=lattice_grid_size if args.lattice_grid_size is not None else default_params[0],
