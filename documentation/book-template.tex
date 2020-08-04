@@ -607,10 +607,10 @@ where $f$ is the dominant flow frequency, $l$ is the characteristic length param
   \end{center}
 \end{figure}
 
-For our experiment in fig. \ref{fig:vonKarmanExperiments}(a) we vary the kinematic viscosity $\nu$ for $Re\leq 100$ and the free stream flow velocity $U$ for $Re>100$, while all other parameters stay the same as described in the list above. We found that for $Re=200$ it works best to additionally reduce the kinematic viscosity $\nu=0.035$, since otherwise the systems becomes unstable.
-In fig. \ref{fig:vonKarmanExperiments}(a) we can observe that there is a non-linear relationship between the Reynolds number and Strouhal number.
+For our experiment in fig. \ref{fig:vonKarmanExperiments}(a) we vary the kinematic viscosity $\nu$ for $Re\leq 100$ and for $Re>130$ we set the kinematic viscosity $\nu=0.03$ and compute the free stream flow velocity $U$ accordingly, while all other parameters stay the same as described in the list above.
+In fig. \ref{fig:vonKarmanExperiments}(a) we can observe that there is a non-linear relationship between the Reynolds number and Strouhal number. The Strouhal number non-linearly increases for Reynolds Number till $Re=140$. For $Re>140$ the Strouhal starts to decrease again.
 
-For our experiment in fig. \ref{fig:vonKarmanExperiments}(b) we vary for different widths of the simulation domain while all other parameters stay the same as described in the list above. We can observe that the Strouhal number stays constant for different width of the  simulation domain except for values between $200$ and $500$.
+For our experiment in fig. \ref{fig:vonKarmanExperiments}(b) we vary for different widths of the simulation domain while all other parameters stay the same as described in the list above. We can observe that the Strouhal number exponentially decreases for larger width of the simulation domain.
 
 For our experiment we vary the blockage ration. The blockage ratio specifies the aspect ratio between the size of the plate $d$ and the height of the simulation domain $l_y$. It is defined as follows:
 \begin{equation}
@@ -625,6 +625,17 @@ One key advantage of the parallelization is its likely speedup. However, accordi
 S=\frac{p}{f_{p}+f_{s}p},
 \end{equation}
 where p is the number of available processors or cores and fractions $f_{s}$ and $f_{p}$ which specify whether a certain part of the code has to executed on a single core or can be executed on multiple cores, respectively. Note that $f_{s}+f_{p}=1$. Note that as the number of processors increases, the speedup is more influenced by the serial part of the code. One could quickly argue that we just have to avoid the serial part in some cases. However, in most cases we have to communicate between processes or synchronize processes. In our parallel \ac{lbm} implementation the serial part corresponds to the communication step right before the streaming step.
+
+In our experiment we demonstrate the scaling behavior of the parallel version of our \ac{lbm} implementation. We use a lattice grid size of $420\times 180$ and measured the runtime for $20000$ time steps. Note, that since the parallelization is quite fast (i.e. below one minute for a larger amount of \ac{mpi} processes), we measure the time in nanoseconds. We use the \textit{bwUniCluster} as high-performance computing cluster. For less than or equal to $40$ \ac{mpi} processes we use a single partition to limit potential communication overhead. For more than $40$ \ac{mpi} processes we use multiple partitions, since there can be executed at most $40$ \ac{mpi} processes for a single node. We use up to $2000$ \ac{mpi} processes in our experiment. We use the quantity \textit{million lattice updates per second} as speed measure.
+
+Fig. \ref{fig:scaling_test} shows the number of million lattice updates per second as a function of \ac{mpi} processes. As we can observe using more \ac{mpi} processes lead to a faster execution time. However, there is a limit to that when the communication overhead dominates. We can see this in the flattening of the curve. When we would use even more \ac{mpi} processes (e.g. $>2000$) the curve would decrease again due to the dominating costs of communication.
+\begin{figure}
+  \begin{center}
+	\scalebox{0.7}{\input{../figures/von_karman_vortex_shedding/scaling_test/scaling_test_420_180.pgf}}
+   \caption{Results of the scaling test for a lattice grid size of $420\times 180$.}
+  \label{fig:scaling_test}
+  \end{center}
+\end{figure}
 \chapter{Conclusions}\label{ch-conclusion}
 In this report we described the \ac{lbm} and its implementation in Python. We also show several applications of the \ac{lbm} to specific problems and compare the simulation results to analytical solutions if possible. We extend the serial implementation by using spatial domain decomposition to reduce computational costs by means of parallelization.
 
